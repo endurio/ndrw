@@ -3,7 +3,8 @@ import:
 - package: github.com/coreos/bbolt
   version: 4f5275f4ebbf6fe7cb772de987fa96ee674460a7
 - package: github.com/btcsuite/btcd
-  version: d81d8877b8f327112e94e814937143a71d1692a7
+  repo: https://gitlab.com/Zergity/ndrd.git
+  version: master
   subpackages:
   - blockchain
   - btcec
