@@ -1430,7 +1430,7 @@ type Balances struct {
 // This function is much slower than it needs to be since transactions outputs
 // are not indexed by the accounts they credit to, and all unspent transaction
 // outputs must be iterated.
-func (w *Wallet) CalculateAccountBalances(account uint32, confirms int32) (Balances, error) {
+func (w *Wallet) CalculateAccountBalances(account uint32, confirms int32, token wire.TokenIdentity) (Balances, error) {
 	var bals Balances
 	err := walletdb.View(w.db, func(tx walletdb.ReadTx) error {
 		addrmgrNs := tx.ReadBucket(waddrmgrNamespaceKey)
@@ -1440,7 +1440,7 @@ func (w *Wallet) CalculateAccountBalances(account uint32, confirms int32) (Balan
 		// the number of tx confirmations.
 		syncBlock := w.Manager.SyncedTo()
 
-		unspent, err := w.TxStore.UnspentOutputs(txmgrNs, nil)
+		unspent, err := w.TxStore.UnspentOutputs(txmgrNs, &token)
 		if err != nil {
 			return err
 		}

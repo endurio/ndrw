@@ -430,6 +430,30 @@ func getAddressesByAccount(icmd interface{}, w *wallet.Wallet) (interface{}, err
 	return addrStrs, nil
 }
 
+func parseOptionalTokenIdentity(tokenParam *string) *wire.TokenIdentity {
+	// parse the token param
+	if tokenParam != nil {
+		t := strings.ToUpper(*tokenParam)
+		switch t {
+		case wire.STB.String():
+			stb := wire.STB
+			return &stb
+		case wire.NDR.String():
+			ndr := wire.NDR
+			return &ndr
+		}
+	}
+	return nil
+}
+
+func parseTokenIdentity(tokenParam *string) wire.TokenIdentity {
+	// parse the token param
+	if tokenParam != nil && wire.NDR.String() == strings.ToUpper(*tokenParam) {
+		return wire.NDR
+	}
+	return wire.STB
+}
+
 // getBalance handles a getbalance request by returning the balance for an
 // account (wallet), or an error if the requested account does not
 // exist.
@@ -453,7 +477,7 @@ func getBalance(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		bals, err := w.CalculateAccountBalances(account, int32(*cmd.MinConf))
+		bals, err := w.CalculateAccountBalances(account, int32(*cmd.MinConf), parseTokenIdentity(cmd.Token))
 		if err != nil {
 			return nil, err
 		}
@@ -593,7 +617,7 @@ func getUnconfirmedBalance(icmd interface{}, w *wallet.Wallet) (interface{}, err
 	if err != nil {
 		return nil, err
 	}
-	bals, err := w.CalculateAccountBalances(account, 1)
+	bals, err := w.CalculateAccountBalances(account, 1, wire.STB)
 	if err != nil {
 		return nil, err
 	}
@@ -1307,22 +1331,6 @@ func listAllTransactions(icmd interface{}, w *wallet.Wallet) (interface{}, error
 func listUnspent(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	cmd := icmd.(*btcjson.ListUnspentCmd)
 
-	// parse the token param
-	var token *wire.TokenIdentity
-	if cmd.Token != nil {
-		t := strings.ToUpper(*cmd.Token)
-		switch t {
-		case wire.STB.String():
-			stb := wire.STB
-			token = &stb
-		case wire.NDR.String():
-			ndr := wire.NDR
-			token = &ndr
-		default:
-			token = nil // everything else is *
-		}
-	}
-
 	var addresses map[string]struct{}
 	if cmd.Addresses != nil {
 		addresses = make(map[string]struct{})
@@ -1336,7 +1344,7 @@ func listUnspent(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		}
 	}
 
-	return w.ListUnspent(int32(*cmd.MinConf), int32(*cmd.MaxConf), addresses, token)
+	return w.ListUnspent(int32(*cmd.MinConf), int32(*cmd.MaxConf), addresses, parseOptionalTokenIdentity(cmd.Token))
 }
 
 // lockUnspent handles the lockunspent command.
