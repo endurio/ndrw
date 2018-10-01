@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -1306,6 +1307,22 @@ func listAllTransactions(icmd interface{}, w *wallet.Wallet) (interface{}, error
 func listUnspent(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	cmd := icmd.(*btcjson.ListUnspentCmd)
 
+	// parse the token param
+	var token *wire.TokenIdentity
+	if cmd.Token != nil {
+		t := strings.ToUpper(*cmd.Token)
+		switch t {
+		case wire.STB.String():
+			stb := wire.STB
+			token = &stb
+		case wire.NDR.String():
+			ndr := wire.NDR
+			token = &ndr
+		default:
+			token = nil // everything else is *
+		}
+	}
+
 	var addresses map[string]struct{}
 	if cmd.Addresses != nil {
 		addresses = make(map[string]struct{})
@@ -1319,7 +1336,7 @@ func listUnspent(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		}
 	}
 
-	return w.ListUnspent(int32(*cmd.MinConf), int32(*cmd.MaxConf), addresses)
+	return w.ListUnspent(int32(*cmd.MinConf), int32(*cmd.MaxConf), addresses, token)
 }
 
 // lockUnspent handles the lockunspent command.

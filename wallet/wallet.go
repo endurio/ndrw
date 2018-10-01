@@ -313,7 +313,7 @@ func (w *Wallet) activeData(dbtx walletdb.ReadTx) ([]btcutil.Address, []wtxmgr.C
 	if err != nil {
 		return nil, nil, err
 	}
-	unspent, err := w.TxStore.UnspentOutputs(txmgrNs)
+	unspent, err := w.TxStore.UnspentOutputs(txmgrNs, nil)
 	return addrs, unspent, err
 }
 
@@ -425,7 +425,7 @@ func (w *Wallet) syncWithChain() error {
 			}
 
 			txmgrNs := tx.ReadBucket(wtxmgrNamespaceKey)
-			credits, err := w.TxStore.UnspentOutputs(txmgrNs)
+			credits, err := w.TxStore.UnspentOutputs(txmgrNs, nil)
 			if err != nil {
 				return err
 			}
@@ -1440,7 +1440,7 @@ func (w *Wallet) CalculateAccountBalances(account uint32, confirms int32) (Balan
 		// the number of tx confirmations.
 		syncBlock := w.Manager.SyncedTo()
 
-		unspent, err := w.TxStore.UnspentOutputs(txmgrNs)
+		unspent, err := w.TxStore.UnspentOutputs(txmgrNs, nil)
 		if err != nil {
 			return err
 		}
@@ -2240,7 +2240,7 @@ func (w *Wallet) Accounts(scope waddrmgr.KeyScope) (*AccountsResult, error) {
 		syncBlock := w.Manager.SyncedTo()
 		syncBlockHash = &syncBlock.Hash
 		syncBlockHeight = syncBlock.Height
-		unspent, err := w.TxStore.UnspentOutputs(txmgrNs)
+		unspent, err := w.TxStore.UnspentOutputs(txmgrNs, nil)
 		if err != nil {
 			return err
 		}
@@ -2331,7 +2331,7 @@ func (w *Wallet) AccountBalances(scope waddrmgr.KeyScope,
 		// Fetch all unspent outputs, and iterate over them tallying each
 		// account's balance where the output script pays to an account address
 		// and the required number of confirmations is met.
-		unspentOutputs, err := w.TxStore.UnspentOutputs(txmgrNs)
+		unspentOutputs, err := w.TxStore.UnspentOutputs(txmgrNs, nil)
 		if err != nil {
 			return err
 		}
@@ -2410,7 +2410,7 @@ func (s creditSlice) Swap(i, j int) {
 // contained within it will be considered.  If we know nothing about a
 // transaction an empty array will be returned.
 func (w *Wallet) ListUnspent(minconf, maxconf int32,
-	addresses map[string]struct{}) ([]*btcjson.ListUnspentResult, error) {
+	addresses map[string]struct{}, token *wire.TokenIdentity) ([]*btcjson.ListUnspentResult, error) {
 
 	var results []*btcjson.ListUnspentResult
 	err := walletdb.View(w.db, func(tx walletdb.ReadTx) error {
@@ -2420,7 +2420,7 @@ func (w *Wallet) ListUnspent(minconf, maxconf int32,
 		syncBlock := w.Manager.SyncedTo()
 
 		filter := len(addresses) != 0
-		unspent, err := w.TxStore.UnspentOutputs(txmgrNs)
+		unspent, err := w.TxStore.UnspentOutputs(txmgrNs, token)
 		if err != nil {
 			return err
 		}
@@ -2526,6 +2526,7 @@ func (w *Wallet) ListUnspent(minconf, maxconf int32,
 				Vout:          output.OutPoint.Index,
 				Account:       acctName,
 				ScriptPubKey:  hex.EncodeToString(output.PkScript),
+				Token:         wire.TokenID(output.PkScript).String(),
 				Amount:        output.Amount.ToBTC(),
 				Confirmations: int64(confs),
 				Spendable:     spendable,
