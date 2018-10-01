@@ -466,10 +466,21 @@ func getBalance(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	if cmd.Account != nil {
 		accountName = *cmd.Account
 	}
+	token := parseTokenIdentity(cmd.Token)
+
 	if accountName == "*" {
-		balance, err = w.CalculateBalance(int32(*cmd.MinConf))
+		// balance, err = w.CalculateBalance(int32(*cmd.MinConf))
+		// [TEMPORARY] using a slow method for simplicity
+		accounts, err := w.AccountNumbers(waddrmgr.KeyScopeBIP0044)
 		if err != nil {
 			return nil, err
+		}
+		for _, account := range accounts {
+			bals, err := w.CalculateAccountBalances(account, int32(*cmd.MinConf), token)
+			if err != nil {
+				return nil, err
+			}
+			balance += bals.Spendable
 		}
 	} else {
 		var account uint32
@@ -477,7 +488,7 @@ func getBalance(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		bals, err := w.CalculateAccountBalances(account, int32(*cmd.MinConf), parseTokenIdentity(cmd.Token))
+		bals, err := w.CalculateAccountBalances(account, int32(*cmd.MinConf), token)
 		if err != nil {
 			return nil, err
 		}

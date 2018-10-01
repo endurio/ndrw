@@ -2202,6 +2202,25 @@ func (w *Wallet) GetTransactions(startBlock, endBlock *BlockIdentifier, cancel <
 	return &res, err
 }
 
+// AccountNumbers returns all account numbers control by this wallet
+func (w *Wallet) AccountNumbers(scope waddrmgr.KeyScope) (accounts []uint32, err error) {
+	manager, err := w.Manager.FetchScopedKeyManager(scope)
+	if err != nil {
+		return nil, err
+	}
+
+	err = walletdb.View(w.db, func(tx walletdb.ReadTx) error {
+		addrmgrNs := tx.ReadBucket(waddrmgrNamespaceKey)
+		err = manager.ForEachAccount(addrmgrNs, func(acct uint32) error {
+			accounts = append(accounts, acct)
+			return nil
+		})
+		return err
+	})
+
+	return accounts, err
+}
+
 // AccountResult is a single account result for the AccountsResult type.
 type AccountResult struct {
 	waddrmgr.AccountProperties
