@@ -11,6 +11,18 @@ import (
 	"github.com/btcsuite/btcutil"
 )
 
+// GetSingleToken returns
+func GetSingleToken(outputs []*wire.TxOut) (token wire.TokenIdentity, ok bool) {
+	for i, txOut := range outputs {
+		if i == 0 {
+			token = txOut.TokenID()
+		} else if token != txOut.TokenID() {
+			return wire.STB, false
+		}
+	}
+	return token, true
+}
+
 // SumOutputValues sums up the list of TxOuts and returns an Amount.
 func SumOutputValues(outputs []*wire.TxOut) (totalOutput btcutil.Amount) {
 	for _, txOut := range outputs {

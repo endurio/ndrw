@@ -136,7 +136,8 @@ func NewUnsignedTransaction(outputs []*wire.TxOut, relayFeePerKb btcutil.Amount,
 				return nil, errors.New("fee estimation requires change " +
 					"scripts no larger than P2WPKH output scripts")
 			}
-			change := wire.NewTxOut(int64(changeAmount), changeScript)
+			// assume that outputs has atleast 1 output
+			change := wire.NewTxOutToken(int64(changeAmount), changeScript, outputs[0].TokenID())
 			l := len(outputs)
 			unsignedTransaction.TxOut = append(outputs[:l:l], change)
 			changeIndex = l

@@ -10,9 +10,11 @@ import (
 	"sort"
 
 	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
+	"github.com/btcsuite/btcwallet/internal/helpers"
 	"github.com/btcsuite/btcwallet/waddrmgr"
 	"github.com/btcsuite/btcwallet/wallet/txauthor"
 	"github.com/btcsuite/btcwallet/walletdb"
@@ -104,6 +106,14 @@ func (s secretSource) GetScript(addr btcutil.Address) ([]byte, error) {
 func (w *Wallet) txToOutputs(outputs []*wire.TxOut, account uint32,
 	minconf int32, feeSatPerKb btcutil.Amount) (tx *txauthor.AuthoredTx, err error) {
 
+	token, ok := helpers.GetSingleToken(outputs)
+	if !ok {
+		return nil, &btcjson.RPCError{
+			Code:    btcjson.ErrRPCUnimplemented,
+			Message: "Multiple tokens transaction are not yet supported",
+		}
+	}
+
 	chainClient, err := w.requireChainClient()
 	if err != nil {
 		return nil, err
@@ -118,7 +128,7 @@ func (w *Wallet) txToOutputs(outputs []*wire.TxOut, account uint32,
 			return err
 		}
 
-		eligible, err := w.findEligibleOutputs(dbtx, account, minconf, bs)
+		eligible, err := w.findEligibleOutputs(dbtx, account, token, minconf, bs)
 		if err != nil {
 			return err
 		}
@@ -173,11 +183,11 @@ func (w *Wallet) txToOutputs(outputs []*wire.TxOut, account uint32,
 	return tx, nil
 }
 
-func (w *Wallet) findEligibleOutputs(dbtx walletdb.ReadTx, account uint32, minconf int32, bs *waddrmgr.BlockStamp) ([]wtxmgr.Credit, error) {
+func (w *Wallet) findEligibleOutputs(dbtx walletdb.ReadTx, account uint32, token wire.TokenIdentity, minconf int32, bs *waddrmgr.BlockStamp) ([]wtxmgr.Credit, error) {
 	addrmgrNs := dbtx.ReadBucket(waddrmgrNamespaceKey)
 	txmgrNs := dbtx.ReadBucket(wtxmgrNamespaceKey)
 
-	unspent, err := w.TxStore.UnspentOutputs(txmgrNs, nil)
+	unspent, err := w.TxStore.UnspentOutputs(txmgrNs, &token)
 	if err != nil {
 		return nil, err
 	}
