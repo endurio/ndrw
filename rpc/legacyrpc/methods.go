@@ -1524,7 +1524,7 @@ func sendMany(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		pairs[k] = amt
 	}
 
-	return sendPairs(w, pairs, account, wire.STB, minConf, txrules.DefaultRelayFeePerKb)
+	return sendPairs(w, pairs, account, parseTokenIdentity(cmd.Token), minConf, txrules.DefaultRelayFeePerKb)
 }
 
 // sendToAddress handles a sendtoaddress RPC request by creating a new
@@ -1560,7 +1560,7 @@ func sendToAddress(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	}
 
 	// sendtoaddress always spends from the default account, this matches bitcoind
-	return sendPairs(w, pairs, waddrmgr.DefaultAccountNum, wire.STB, 1,
+	return sendPairs(w, pairs, waddrmgr.DefaultAccountNum, parseTokenIdentity(cmd.Token), 1,
 		txrules.DefaultRelayFeePerKb)
 }
 
