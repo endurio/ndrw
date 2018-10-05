@@ -148,6 +148,15 @@ func (w *Wallet) txToOutputs(outputs []*wire.TxOut, account uint32,
 			if err != nil {
 				return nil, err
 			}
+
+			if chainClient := w.ChainClient(); chainClient != nil {
+				// Notify the rpc server about the newly created address.
+				err = chainClient.NotifyReceived([]btcutil.Address{changeAddr})
+				if err != nil {
+					return nil, err
+				}
+			}
+
 			return txscript.PayToAddrScript(changeAddr)
 		}
 		tx, err = txauthor.NewUnsignedTransaction(outputs, feeSatPerKb,
