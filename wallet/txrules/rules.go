@@ -15,7 +15,7 @@ import (
 )
 
 // DefaultRelayFeePerKb is the default minimum relay fee policy for a mempool.
-const DefaultRelayFeePerKb btcutil.Amount = 1e3
+const DefaultRelayFeePerKb btcutil.Amount = 0
 
 // GetDustThreshold is used to define the amount below which output will be
 // determined as dust. Threshold is determined as 3 times the relay fee.
