@@ -4,7 +4,7 @@ import:
   version: 4f5275f4ebbf6fe7cb772de987fa96ee674460a7
 - package: github.com/btcsuite/btcd
   repo: https://gitlab.com/Zergity/ndrd.git
-  version: master
+  version: mvp
   subpackages:
   - blockchain
   - btcec
@@ -20,7 +20,7 @@ import:
   - hdkeychain
 - package: github.com/lightninglabs/neutrino
   repo: https://github.com/Zergity/neutrino.git
-  version: 2t
+  version: mvp
 - package: github.com/btcsuite/golangcrypto
   subpackages:
   - nacl/secretbox
