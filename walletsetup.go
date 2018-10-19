@@ -103,6 +103,7 @@ func convertLegacyKeystore(legacyKeyStore *keystore.Store, w *wallet.Wallet) err
 func createWallet(cfg *config) error {
 	dbDir := networkDir(cfg.AppDataDir.Value, activeNet.Params)
 	loader := wallet.NewLoader(activeNet.Params, dbDir, 250)
+	interactive := len(cfg.PassPhrase) == 0
 
 	// When there is a legacy keystore, open it now to ensure any errors
 	// don't end up exiting the process after the user has spent time
@@ -123,13 +124,19 @@ func createWallet(cfg *config) error {
 		}
 	}
 
-	// Start by prompting for the private passphrase.  When there is an
-	// existing keystore, the user will be promped for that passphrase,
-	// otherwise they will be prompted for a new one.
-	reader := bufio.NewReader(os.Stdin)
-	privPass, err := prompt.PrivatePass(reader, legacyKeyStore)
-	if err != nil {
-		return err
+	var reader *bufio.Reader
+	var privPass []byte
+	if interactive {
+		reader = bufio.NewReader(os.Stdin)
+		// Start by prompting for the private passphrase.  When there is an
+		// existing keystore, the user will be promped for that passphrase,
+		// otherwise they will be prompted for a new one.
+		privPass, err = prompt.PrivatePass(reader, legacyKeyStore)
+		if err != nil {
+			return err
+		}
+	} else {
+		privPass = []byte(cfg.PassPhrase)
 	}
 
 	// When there exists a legacy keystore, unlock it now and set up a
@@ -175,13 +182,16 @@ func createWallet(cfg *config) error {
 		})
 	}
 
-	// Ascertain the public passphrase.  This will either be a value
-	// specified by the user or the default hard-coded public passphrase if
-	// the user does not want the additional public data encryption.
-	pubPass, err := prompt.PublicPass(reader, privPass,
-		[]byte(wallet.InsecurePubPassphrase), []byte(cfg.WalletPass))
-	if err != nil {
-		return err
+	pubPass := []byte(wallet.InsecurePubPassphrase)
+	if interactive {
+		// Ascertain the public passphrase.  This will either be a value
+		// specified by the user or the default hard-coded public passphrase if
+		// the user does not want the additional public data encryption.
+		pubPass, err = prompt.PublicPass(reader, privPass,
+			[]byte(wallet.InsecurePubPassphrase), []byte(cfg.WalletPass))
+		if err != nil {
+			return err
+		}
 	}
 
 	// Ascertain the wallet generation seed.  This will either be an
