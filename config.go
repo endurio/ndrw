@@ -630,13 +630,12 @@ func loadConfig() (*config, []string, error) {
 				return nil, nil, err
 			}
 			if _, ok := localhostListeners[host]; !ok {
-				str := "%s: the --noservertls option may not be used " +
+				str := "%s: the --noservertls option should not be used " +
 					"when binding RPC to non localhost " +
 					"addresses: %s"
 				err := fmt.Errorf(str, funcName, addr)
 				fmt.Fprintln(os.Stderr, err)
 				fmt.Fprintln(os.Stderr, usageMessage)
-				return nil, nil, err
 			}
 		}
 	}
