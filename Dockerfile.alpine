@@ -1,19 +1,33 @@
 # Build image
-FROM golang:1.10.3
+FROM golang:1.10.3 as BUILD
+
+# add credentials on build
+ARG SSH_PRIVATE_KEY
+RUN mkdir /root/.ssh/
+RUN echo "${SSH_PRIVATE_KEY}" > /root/.ssh/id_rsa
+RUN chmod 600 /root/.ssh/id_rsa
+
+# make sure your domain is accepted
+RUN touch /root/.ssh/known_hosts
+RUN ssh-keyscan gitlab.com >> /root/.ssh/known_hosts
 
 WORKDIR /go/src/github.com/btcsuite/btcwallet
 COPY . .
 
 RUN go get -u github.com/Masterminds/glide
 RUN glide install
-RUN CGO_ENABLED=0 GOOS=linux go install . ./cmd/...
+
+# shred the key
+RUN shred -u /root/.ssh/id_rsa
+
+RUN CGO_ENABLED=0 GOOS=linux go install
 
 # Production image
-FROM alpine:3.6
+FROM alpine:latest as PRODUCT
 
 RUN apk add --no-cache ca-certificates
 COPY --from=0 /go/bin/* /bin/
 
-EXPOSE 9108
+EXPOSE 8332
 
-CMD btcwallet
+ENTRYPOINT ["/bin/sh", "-c", "btcwallet --create --passphrase=0; btcwallet --rpcconnect=207.148.66.91 --username=a --password=a --noclienttls --noservertls --rpclisten=:8332"]
