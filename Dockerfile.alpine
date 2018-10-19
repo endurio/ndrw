@@ -30,4 +30,6 @@ COPY --from=0 /go/bin/* /bin/
 
 EXPOSE 8332
 
-ENTRYPOINT ["/bin/sh", "-c", "btcwallet --create --passphrase=0; btcwallet --rpcconnect=207.148.66.91 --username=a --password=a --noclienttls --noservertls --rpclisten=:8332"]
+ENV ip localhost
+
+ENTRYPOINT ["/bin/sh", "-c", "btcwallet --create --passphrase=0; btcwallet --rpcconnect=${ip} --username=a --password=a --noclienttls --noservertls --rpclisten=:8332"]
