@@ -526,13 +526,12 @@ func loadConfig() (*config, []string, error) {
 		}
 		if cfg.DisableClientTLS {
 			if _, ok := localhostListeners[RPCHost]; !ok {
-				str := "%s: the --noclienttls option may not be used " +
+				str := "%s: the --noclienttls option should not be used " +
 					"when connecting RPC to non localhost " +
 					"addresses: %s"
 				err := fmt.Errorf(str, funcName, cfg.RPCConnect)
 				fmt.Fprintln(os.Stderr, err)
 				fmt.Fprintln(os.Stderr, usageMessage)
-				return nil, nil, err
 			}
 		} else {
 			// If CAFile is unset, choose either the copy or local btcd cert.
