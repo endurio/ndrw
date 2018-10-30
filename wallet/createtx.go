@@ -21,18 +21,17 @@ import (
 	"github.com/btcsuite/btcwallet/wtxmgr"
 )
 
-// byAmount defines the methods needed to satisify sort.Interface to
-// sort credits by their output amount.
-type byAmount []wtxmgr.Credit
+// byHeight defines the methods needed to satisify sort.Interface to
+// sort credits by their block height.
+type byHeight []wtxmgr.Credit
 
-func (s byAmount) Len() int           { return len(s) }
-func (s byAmount) Less(i, j int) bool { return s[i].Amount < s[j].Amount }
-func (s byAmount) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s byHeight) Len() int           { return len(s) }
+func (s byHeight) Less(i, j int) bool { return s[i].Height < s[j].Height }
+func (s byHeight) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 func makeInputSource(eligible []wtxmgr.Credit) txauthor.InputSource {
-	// Pick largest outputs first.  This is only done for compatibility with
-	// previous tx creation code, not because it's a good idea.
-	sort.Sort(sort.Reverse(byAmount(eligible)))
+	// Pick oldest outputs first.
+	sort.Sort(byHeight(eligible))
 
 	// Current inputs and their total value.  These are closed over by the
 	// returned input source and reused across multiple calls.
