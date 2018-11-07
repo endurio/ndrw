@@ -15,7 +15,8 @@ import:
   - wire
 - package: github.com/btcsuite/btclog
 - package: github.com/btcsuite/btcutil
-  version: ab6388e0c60ae4834a1f57511e20c17b5f78be4b
+  repo: github.com/Zergity/btcutil
+  version: mvp
   subpackages:
   - hdkeychain
 - package: github.com/lightninglabs/neutrino

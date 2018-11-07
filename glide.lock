@@ -1,10 +1,10 @@
-hash: 9a0fb9f01121873acb6d2f399704fc71cdff6a45cf41bfea5d1b40dc3f27ea5b
-updated: 2018-10-19T17:49:29.5448599+07:00
+hash: b8149cfae8096c172eca9492ce9d0746bbb16ed51146026d93c56e0530359cf1
+updated: 2018-11-13T13:45:17.2467937+07:00
 imports:
 - name: github.com/aead/siphash
   version: 83563a290f60225eb120d724600b9690c3fb536f
 - name: github.com/btcsuite/btcd
-  version: 9264aa89360f2f0afc33a64d171fad2af26a3c19
+  version: b543cb3876263e29ab1f05e1b3e6ac3b9eda7af4
   repo: git@gitlab.com:Zergity/ndrd.git
   subpackages:
   - addrmgr
@@ -22,7 +22,8 @@ imports:
 - name: github.com/btcsuite/btclog
   version: 84c8d2346e9fc8c7b947e243b9c24e6df9fd206a
 - name: github.com/btcsuite/btcutil
-  version: ab6388e0c60ae4834a1f57511e20c17b5f78be4b
+  version: 597e522a814da0dd394c64fddf4eb73d8a59f95a
+  repo: github.com/Zergity/btcutil
   subpackages:
   - base58
   - bech32
