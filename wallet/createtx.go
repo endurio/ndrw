@@ -105,6 +105,13 @@ func (s secretSource) GetScript(addr btcutil.Address) ([]byte, error) {
 func (w *Wallet) txToOutputs(outputs []*wire.TxOut, account uint32,
 	minconf int32, feeSatPerKb btcutil.Amount) (tx *txauthor.AuthoredTx, err error) {
 
+	// sign of an order
+	var orderAmount int64
+	if outputs[len(outputs)-1].PkScript == nil {
+		orderAmount = outputs[len(outputs)-1].Value
+		outputs = outputs[:len(outputs)-1]
+	}
+
 	token, ok := helpers.GetSingleToken(outputs)
 	if !ok {
 		return nil, &btcjson.RPCError{
@@ -162,6 +169,12 @@ func (w *Wallet) txToOutputs(outputs []*wire.TxOut, account uint32,
 			inputSource, changeSource)
 		if err != nil {
 			return err
+		}
+
+		// swap back the order receiving output
+		if orderAmount > 0 {
+			tx.Tx.TxOut[0].Value = orderAmount
+			tx.Tx.TxOut[0].SwapToken()
 		}
 
 		// Randomize change position, if change exists, before signing.

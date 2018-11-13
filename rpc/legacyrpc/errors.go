@@ -39,6 +39,10 @@ type (
 
 // Errors variables that are defined once here to avoid duplication below.
 var (
+	ErrNeedPositivePrice = InvalidParameterError{
+		errors.New("price must be positive"),
+	}
+
 	ErrNeedPositiveAmount = InvalidParameterError{
 		errors.New("amount must be positive"),
 	}

@@ -25,6 +25,7 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcwallet/chain"
+	"github.com/btcsuite/btcwallet/internal/helpers"
 	"github.com/btcsuite/btcwallet/waddrmgr"
 	"github.com/btcsuite/btcwallet/wallet"
 	"github.com/btcsuite/btcwallet/wallet/txrules"
@@ -103,6 +104,8 @@ var rpcHandlers = map[string]struct {
 	"sendfrom":               {handlerWithChain: sendFrom},
 	"sendmany":               {handler: sendMany},
 	"sendtoaddress":          {handler: sendToAddress},
+	"bid":                    {handler: bid},
+	"ask":                    {handler: ask},
 	"settxfee":               {handler: setTxFee},
 	"signmessage":            {handler: signMessage},
 	"signrawtransaction":     {handlerWithChain: signRawTransaction},
@@ -1389,6 +1392,13 @@ func lockUnspent(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 func makeOutputs(pairs map[string]btcutil.Amount, token wire.TokenIdentity, chainParams *chaincfg.Params) ([]*wire.TxOut, error) {
 	outputs := make([]*wire.TxOut, 0, len(pairs))
 	for addrStr, amt := range pairs {
+		if len(addrStr) <= 0 {
+			// empty address is the sign for order, pass it with nil pkScript
+			outputs = append(outputs, wire.NewTxOut(int64(amt), nil))
+			// should also be the last output
+			return outputs, nil
+		}
+
 		addr, err := btcutil.DecodeAddress(addrStr, chainParams)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode address: %s", err)
@@ -1561,6 +1571,60 @@ func sendToAddress(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 
 	// sendtoaddress always spends from the default account, this matches bitcoind
 	return sendPairs(w, pairs, waddrmgr.DefaultAccountNum, parseTokenIdentity(cmd.Token), 1,
+		txrules.DefaultRelayFeePerKb)
+}
+
+// bid handles a bid RPC request
+func bid(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	cmd := icmd.(*btcjson.BidCmd)
+
+	// buying NDR, passing the STB for reverted token
+	return order(w, wire.STB, cmd.Amount, cmd.Price, *cmd.MinConf)
+}
+
+// ask handles a ask RPC request
+func ask(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	cmd := icmd.(*btcjson.AskCmd)
+
+	// selling NDR, passing NDR for reverted token
+	return order(w, wire.NDR, cmd.Amount, cmd.Price, *cmd.MinConf)
+}
+
+// handles a bid or an ask RPC request
+func order(w *wallet.Wallet, token wire.TokenIdentity, amount, price float64, minConf int) (interface{}, error) {
+	amt, err := btcutil.NewAmount(amount)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check that signed integer parameters are positive.
+	if amt < 0 {
+		return nil, ErrNeedPositiveAmount
+	}
+
+	if price <= 0 {
+		return nil, ErrNeedPositivePrice
+	}
+	payout := amt.MulF64(price)
+
+	// Check that minconf is positive.
+	if minConf < 0 {
+		return nil, ErrNeedPositiveMinconf
+	}
+
+	// get a new change address to receive
+	addr, err := w.NewChangeAddress(helpers.ReceivingAccount(waddrmgr.DefaultAccountNum), waddrmgr.KeyScopeBIP0044)
+	if err != nil {
+		return nil, err
+	}
+
+	// Mock up map of address and amount pairs.
+	pairs := map[string]btcutil.Amount{
+		addr.EncodeAddress(): payout,
+		"":                   amt,
+	}
+
+	return sendPairs(w, pairs, waddrmgr.DefaultAccountNum, wire.STB, 1,
 		txrules.DefaultRelayFeePerKb)
 }
 

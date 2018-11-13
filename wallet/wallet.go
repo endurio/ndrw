@@ -3125,6 +3125,11 @@ func (w *Wallet) SendOutputs(outputs []*wire.TxOut, account uint32,
 		return nil, err
 	}
 
+	// public order instead
+	if outputs[len(outputs)-1].PkScript == nil {
+		return w.publishOrder(&wire.MsgOrder{MsgTx: createdTx.Tx})
+	}
+
 	return w.publishTransaction(createdTx.Tx)
 }
 
@@ -3263,6 +3268,81 @@ func (w *Wallet) SignTransaction(tx *wire.MsgTx, hashType txscript.SigHashType,
 		return nil
 	})
 	return signErrors, err
+}
+
+// PublishOrder sends the order to the consensus RPC server so it
+// can be propagated to other nodes and eventually mined.
+//
+// This function is unstable and will be removed once syncing code is moved out
+// of the wallet.
+func (w *Wallet) PublishOrder(order *wire.MsgOrder) error {
+	_, err := w.publishOrder(order)
+	return err
+}
+
+// publishOrder is the private version of PublishOrder which
+// contains the primary logic required for publishing a order, updating
+// the relevant database state, and finally possible removing the order
+// from the database (along with cleaning up all inputs used, and outputs
+// created) if the order is rejected by the back end.
+func (w *Wallet) publishOrder(order *wire.MsgOrder) (*chainhash.Hash, error) {
+	server, err := w.requireChainClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// As we aim for this to be general reliable order broadcast API,
+	// we'll write this order to disk as an unconfirmed order. This way,
+	// upon restarts, we'll always rebroadcast it, and also add it to our
+	// set of records.
+	orderRec, err := wtxmgr.NewTxRecordFromMsgTx(order.MsgTx, time.Now())
+	if err != nil {
+		return nil, err
+	}
+	err = walletdb.Update(w.db, func(dbOrder walletdb.ReadWriteTx) error {
+		return w.addRelevantTx(dbOrder, orderRec, nil)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	orderid, err := server.SendRawTransaction(order.MsgTx, false)
+	switch {
+	case err == nil:
+		return orderid, nil
+
+	// The following are errors returned from btcd's mempool.
+	case strings.Contains(err.Error(), "spent"):
+		fallthrough
+	case strings.Contains(err.Error(), "orphan"):
+		fallthrough
+	case strings.Contains(err.Error(), "conflict"):
+		fallthrough
+
+	// The following errors are returned from bitcoind's mempool.
+	case strings.Contains(err.Error(), "fee not met"):
+		fallthrough
+	case strings.Contains(err.Error(), "Missing inputs"):
+		fallthrough
+	case strings.Contains(err.Error(), "already in block chain"):
+		// If the order was rejected, then we'll remove it from
+		// the orderstore, as otherwise, we'll attempt to continually
+		// re-broadcast it, and the uordero state of the wallet won't be
+		// accurate.
+		dbErr := walletdb.Update(w.db, func(dbOrder walletdb.ReadWriteTx) error {
+			ordermgrNs := dbOrder.ReadWriteBucket(wtxmgrNamespaceKey)
+			return w.TxStore.RemoveUnminedTx(ordermgrNs, orderRec)
+		})
+		if dbErr != nil {
+			return nil, fmt.Errorf("unable to broadcast order: %v, "+
+				"unable to remove invalid order: %v", err, dbErr)
+		}
+
+		return nil, err
+
+	default:
+		return nil, err
+	}
 }
 
 // PublishTransaction sends the transaction to the consensus RPC server so it

@@ -292,6 +292,22 @@ var helpDescsEnUS = map[string]string{
 	"sendtoaddress-commentto": "Unused",
 	"sendtoaddress--result0":  "The transaction hash of the sent transaction",
 
+	// BidCmd help.
+	"bid--synopsis": "Authors, signs, and sends a bidding order to buy some amount of NDR.\n" +
+		"STB outputs are chosen from the default account.\n" +
+		"Return and change output are automatically included to send output value back to the original account.",
+	"bid-amount":   "Amount to buy valued in NDR",
+	"bid-price":    "Buying price valued in NDR/STB",
+	"bid--result0": "The hash of the sent order",
+
+	// AskCmd help.
+	"ask--synopsis": "Authors, signs, and sends an asking order to sell some amount of NDR.\n" +
+		"NDR outputs are chosen from the default account.\n" +
+		"Return and change output are automatically included to send output value back to the original account.",
+	"ask-amount":   "Amount to buy valued in NDR",
+	"ask-price":    "Selling price valued in NDR/STB",
+	"ask--result0": "The hash of the sent order",
+
 	// SetTxFeeCmd help.
 	"settxfee--synopsis": "Modify the increment used each time more fee is required for an authored transaction.",
 	"settxfee-amount":    "The new fee increment valued in bitcoin",

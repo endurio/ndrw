@@ -9,7 +9,16 @@ package helpers
 import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
+	"github.com/btcsuite/btcwallet/waddrmgr"
 )
+
+// ReceivingAccount ...
+func ReceivingAccount(account uint32) uint32 {
+	if account == waddrmgr.ImportedAddrAccount {
+		return 0
+	}
+	return account
+}
 
 // GetSingleToken returns
 func GetSingleToken(outputs []*wire.TxOut) (token wire.TokenIdentity, ok bool) {
