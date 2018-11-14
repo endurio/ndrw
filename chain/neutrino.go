@@ -177,6 +177,17 @@ func (s *NeutrinoClient) SendRawTransaction(tx *wire.MsgTx, allowHighFees bool) 
 	return &hash, nil
 }
 
+// SendRawOrder replicates the RPC client's SendRawOrder command.
+func (s *NeutrinoClient) SendRawOrder(order *wire.MsgOdr, allowHighFees bool) (
+	*chainhash.Hash, error) {
+	err := s.CS.SendOrder(order)
+	if err != nil {
+		return nil, err
+	}
+	hash := order.TxHash()
+	return &hash, nil
+}
+
 // FilterBlocks scans the blocks contained in the FilterBlocksRequest for any
 // addresses of interest. For each requested block, the corresponding compact
 // filter will first be checked for matches, skipping those that do not report

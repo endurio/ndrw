@@ -3127,7 +3127,7 @@ func (w *Wallet) SendOutputs(outputs []*wire.TxOut, account uint32,
 
 	// public order instead
 	if outputs[len(outputs)-1].PkScript == nil {
-		return w.publishOrder(&wire.MsgOrder{MsgTx: createdTx.Tx})
+		return w.publishOrder(&wire.MsgOdr{MsgTx: createdTx.Tx})
 	}
 
 	return w.publishTransaction(createdTx.Tx)
@@ -3275,7 +3275,7 @@ func (w *Wallet) SignTransaction(tx *wire.MsgTx, hashType txscript.SigHashType,
 //
 // This function is unstable and will be removed once syncing code is moved out
 // of the wallet.
-func (w *Wallet) PublishOrder(order *wire.MsgOrder) error {
+func (w *Wallet) PublishOrder(order *wire.MsgOdr) error {
 	_, err := w.publishOrder(order)
 	return err
 }
@@ -3285,7 +3285,7 @@ func (w *Wallet) PublishOrder(order *wire.MsgOrder) error {
 // the relevant database state, and finally possible removing the order
 // from the database (along with cleaning up all inputs used, and outputs
 // created) if the order is rejected by the back end.
-func (w *Wallet) publishOrder(order *wire.MsgOrder) (*chainhash.Hash, error) {
+func (w *Wallet) publishOrder(order *wire.MsgOdr) (*chainhash.Hash, error) {
 	server, err := w.requireChainClient()
 	if err != nil {
 		return nil, err
@@ -3306,7 +3306,7 @@ func (w *Wallet) publishOrder(order *wire.MsgOrder) (*chainhash.Hash, error) {
 		return nil, err
 	}
 
-	orderid, err := server.SendRawTransaction(order.MsgTx, false)
+	orderid, err := server.SendRawOrder(order, false)
 	switch {
 	case err == nil:
 		return orderid, nil

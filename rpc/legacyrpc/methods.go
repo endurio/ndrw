@@ -1578,35 +1578,52 @@ func sendToAddress(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 func bid(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	cmd := icmd.(*btcjson.BidCmd)
 
+	amount, err := btcutil.NewAmount(cmd.Amount)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check that signed integer parameters are positive.
+	if amount < 0 {
+		return nil, ErrNeedPositiveAmount
+	}
+
+	price := cmd.Price
+	if price <= 0 {
+		return nil, ErrNeedPositivePrice
+	}
+	payout := amount.MulF64(price)
+
 	// buying NDR, passing the STB for reverted token
-	return order(w, wire.STB, cmd.Amount, cmd.Price, *cmd.MinConf)
+	return order(w, wire.STB, amount, payout, *cmd.MinConf)
 }
 
 // ask handles a ask RPC request
 func ask(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	cmd := icmd.(*btcjson.AskCmd)
 
-	// selling NDR, passing NDR for reverted token
-	return order(w, wire.NDR, cmd.Amount, cmd.Price, *cmd.MinConf)
-}
-
-// handles a bid or an ask RPC request
-func order(w *wallet.Wallet, token wire.TokenIdentity, amount, price float64, minConf int) (interface{}, error) {
-	amt, err := btcutil.NewAmount(amount)
+	amount, err := btcutil.NewAmount(cmd.Amount)
 	if err != nil {
 		return nil, err
 	}
 
 	// Check that signed integer parameters are positive.
-	if amt < 0 {
+	if amount < 0 {
 		return nil, ErrNeedPositiveAmount
 	}
 
+	price := cmd.Price
 	if price <= 0 {
 		return nil, ErrNeedPositivePrice
 	}
-	payout := amt.MulF64(price)
+	payout := amount.MulF64(price)
 
+	// selling NDR, passing NDR for reverted token
+	return order(w, wire.NDR, payout, amount, *cmd.MinConf)
+}
+
+// handles a bid or an ask RPC request
+func order(w *wallet.Wallet, token wire.TokenIdentity, amount, payout btcutil.Amount, minConf int) (interface{}, error) {
 	// Check that minconf is positive.
 	if minConf < 0 {
 		return nil, ErrNeedPositiveMinconf
@@ -1621,10 +1638,10 @@ func order(w *wallet.Wallet, token wire.TokenIdentity, amount, price float64, mi
 	// Mock up map of address and amount pairs.
 	pairs := map[string]btcutil.Amount{
 		addr.EncodeAddress(): payout,
-		"":                   amt,
+		"":                   amount,
 	}
 
-	return sendPairs(w, pairs, waddrmgr.DefaultAccountNum, wire.STB, 1,
+	return sendPairs(w, pairs, waddrmgr.DefaultAccountNum, token, int32(minConf),
 		txrules.DefaultRelayFeePerKb)
 }
 
