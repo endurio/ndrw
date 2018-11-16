@@ -1,10 +1,10 @@
 hash: b8149cfae8096c172eca9492ce9d0746bbb16ed51146026d93c56e0530359cf1
-updated: 2018-11-13T13:45:17.2467937+07:00
+updated: 2018-11-15T23:34:12.6713873+07:00
 imports:
 - name: github.com/aead/siphash
   version: 83563a290f60225eb120d724600b9690c3fb536f
 - name: github.com/btcsuite/btcd
-  version: b543cb3876263e29ab1f05e1b3e6ac3b9eda7af4
+  version: bb472f1f9830c20414ae30a84588fbe83a0e5419
   repo: git@gitlab.com:Zergity/ndrd.git
   subpackages:
   - addrmgr
@@ -22,7 +22,7 @@ imports:
 - name: github.com/btcsuite/btclog
   version: 84c8d2346e9fc8c7b947e243b9c24e6df9fd206a
 - name: github.com/btcsuite/btcutil
-  version: 597e522a814da0dd394c64fddf4eb73d8a59f95a
+  version: c63e648c23743051e03fe3619e0a708fd23d8137
   repo: github.com/Zergity/btcutil
   subpackages:
   - base58
@@ -71,7 +71,7 @@ imports:
 - name: github.com/lightninglabs/gozmq
   version: 462a8a75388506b68f76661af8d649f0b88e5301
 - name: github.com/lightninglabs/neutrino
-  version: 07577609f7a5e5a2f0a0d5977c0a342febec8d2c
+  version: f95bde488be47174a3b854e81362280aea870979
   repo: https://github.com/Zergity/neutrino.git
   subpackages:
   - cache
