@@ -1391,14 +1391,12 @@ func lockUnspent(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 // and amounts.
 func makeOutputs(pairs map[string]btcutil.Amount, token wire.TokenIdentity, chainParams *chaincfg.Params) ([]*wire.TxOut, error) {
 	outputs := make([]*wire.TxOut, 0, len(pairs))
-	for addrStr, amt := range pairs {
-		if len(addrStr) <= 0 {
-			// empty address is the sign for order, pass it with nil pkScript
-			outputs = append(outputs, wire.NewTxOut(int64(amt), nil))
-			// should also be the last output
-			return outputs, nil
-		}
 
+	// temporary remove the order markup
+	orderAmount, isOrder := pairs[""]
+	delete(pairs, "")
+
+	for addrStr, amt := range pairs {
 		addr, err := btcutil.DecodeAddress(addrStr, chainParams)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode address: %s", err)
@@ -1411,6 +1409,12 @@ func makeOutputs(pairs map[string]btcutil.Amount, token wire.TokenIdentity, chai
 
 		outputs = append(outputs, wire.NewTxOutToken(int64(amt), pkScript, token))
 	}
+
+	if isOrder {
+		// append the order markup output
+		outputs = append(outputs, wire.NewTxOut(int64(orderAmount), nil))
+	}
+
 	return outputs, nil
 }
 

@@ -3125,8 +3125,9 @@ func (w *Wallet) SendOutputs(outputs []*wire.TxOut, account uint32,
 		return nil, err
 	}
 
-	// public order instead
-	if outputs[len(outputs)-1].PkScript == nil {
+	// check if it's an order
+	n := len(outputs)
+	if n > 1 && outputs[n-1].PkScript == nil {
 		return w.publishOrder(&wire.MsgOdr{MsgTx: createdTx.Tx})
 	}
 
