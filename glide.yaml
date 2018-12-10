@@ -15,7 +15,7 @@ import:
   - wire
 - package: github.com/btcsuite/btclog
 - package: github.com/btcsuite/btcutil
-  repo: github.com/Zergity/btcutil
+  repo: https://github.com/Zergity/btcutil.git
   version: mvp
   subpackages:
   - hdkeychain
