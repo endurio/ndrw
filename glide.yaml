@@ -15,12 +15,12 @@ import:
   - wire
 - package: github.com/btcsuite/btclog
 - package: github.com/btcsuite/btcutil
-  repo: https://github.com/Zergity/btcutil.git
+  repo: https://github.com/endurio/btcutil.git
   version: mvp
   subpackages:
   - hdkeychain
 - package: github.com/lightninglabs/neutrino
-  repo: https://github.com/Zergity/neutrino.git
+  repo: https://github.com/endurio/neutrino.git
   version: mvp
 - package: github.com/btcsuite/golangcrypto
   subpackages:
