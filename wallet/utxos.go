@@ -6,9 +6,9 @@
 package wallet
 
 import (
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcwallet/walletdb"
+	"github.com/endurio/ndrd/txscript"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrw/walletdb"
 )
 
 // OutputSelectionPolicy describes the rules for selecting an output from the

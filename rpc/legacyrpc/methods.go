@@ -15,19 +15,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/btcjson"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/rpcclient"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcwallet/chain"
-	"github.com/btcsuite/btcwallet/waddrmgr"
-	"github.com/btcsuite/btcwallet/wallet"
-	"github.com/btcsuite/btcwallet/wallet/txrules"
-	"github.com/btcsuite/btcwallet/wtxmgr"
+	"github.com/endurio/ndrd/btcec"
+	"github.com/endurio/ndrd/btcjson"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/rpcclient"
+	"github.com/endurio/ndrd/txscript"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrw/chain"
+	"github.com/endurio/ndrw/waddrmgr"
+	"github.com/endurio/ndrw/wallet"
+	"github.com/endurio/ndrw/wallet/txrules"
+	"github.com/endurio/ndrw/wtxmgr"
 )
 
 // confirmed checks whether a transaction at height txHeight has met minconf
@@ -118,7 +118,7 @@ var rpcHandlers = map[string]struct {
 	"importwallet":         {handler: unimplemented, noHelp: true},
 	"listaddressgroupings": {handler: unimplemented, noHelp: true},
 
-	// Reference methods which can't be implemented by btcwallet due to
+	// Reference methods which can't be implemented by ndrw due to
 	// design decision differences
 	"encryptwallet": {handler: unsupported, noHelp: true},
 	"move":          {handler: unsupported, noHelp: true},
@@ -148,11 +148,11 @@ func unimplemented(interface{}, *wallet.Wallet) (interface{}, error) {
 }
 
 // unsupported handles a standard bitcoind RPC request which is
-// unsupported by btcwallet due to design differences.
+// unsupported by ndrw due to design differences.
 func unsupported(interface{}, *wallet.Wallet) (interface{}, error) {
 	return nil, &btcjson.RPCError{
 		Code:    -1,
-		Message: "Request unsupported by btcwallet",
+		Message: "Request unsupported by ndrw",
 	}
 }
 
@@ -288,7 +288,7 @@ func jsonError(err error) *btcjson.RPCError {
 // makeMultiSigScript is a helper function to combine common logic for
 // AddMultiSig and CreateMultiSig.
 func makeMultiSigScript(w *wallet.Wallet, keys []string, nRequired int) ([]byte, error) {
-	keysesPrecious := make([]*btcutil.AddressPubKey, len(keys))
+	keysesPrecious := make([]*util.AddressPubKey, len(keys))
 
 	// The address list will made up either of addreseses (pubkey hash), for
 	// which we need to look up the keys in wallet, straight pubkeys, or a
@@ -301,14 +301,14 @@ func makeMultiSigScript(w *wallet.Wallet, keys []string, nRequired int) ([]byte,
 		}
 
 		switch addr := a.(type) {
-		case *btcutil.AddressPubKey:
+		case *util.AddressPubKey:
 			keysesPrecious[i] = addr
 		default:
 			pubKey, err := w.PubKeyForAddress(addr)
 			if err != nil {
 				return nil, err
 			}
-			pubKeyAddr, err := btcutil.NewAddressPubKey(
+			pubKeyAddr, err := util.NewAddressPubKey(
 				pubKey.SerializeCompressed(), w.ChainParams())
 			if err != nil {
 				return nil, err
@@ -330,7 +330,7 @@ func addMultiSigAddress(icmd interface{}, w *wallet.Wallet) (interface{}, error)
 		return nil, &ErrNotImportedAccount
 	}
 
-	secp256k1Addrs := make([]btcutil.Address, len(cmd.Keys))
+	secp256k1Addrs := make([]util.Address, len(cmd.Keys))
 	for i, k := range cmd.Keys {
 		addr, err := decodeAddress(k, w.ChainParams())
 		if err != nil {
@@ -362,7 +362,7 @@ func createMultiSig(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		return nil, ParseError{err}
 	}
 
-	address, err := btcutil.NewAddressScriptHash(script, w.ChainParams())
+	address, err := util.NewAddressScriptHash(script, w.ChainParams())
 	if err != nil {
 		// above is a valid script, shouldn't happen.
 		return nil, err
@@ -435,7 +435,7 @@ func getAddressesByAccount(icmd interface{}, w *wallet.Wallet) (interface{}, err
 func getBalance(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	cmd := icmd.(*btcjson.GetBalanceCmd)
 
-	var balance btcutil.Amount
+	var balance util.Amount
 	var err error
 	accountName := "*"
 	if cmd.Account != nil {
@@ -487,7 +487,7 @@ func getBlockCount(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 }
 
 // getInfo handles a getinfo request by returning the a structure containing
-// information about the current state of btcwallet.
+// information about the current state of ndrw.
 // exist.
 func getInfo(icmd interface{}, w *wallet.Wallet, chainClient *chain.RPCClient) (interface{}, error) {
 	// Call down to btcd for all of the information in this command known
@@ -515,8 +515,8 @@ func getInfo(icmd interface{}, w *wallet.Wallet, chainClient *chain.RPCClient) (
 	return info, nil
 }
 
-func decodeAddress(s string, params *chaincfg.Params) (btcutil.Address, error) {
-	addr, err := btcutil.DecodeAddress(s, params)
+func decodeAddress(s string, params *chaincfg.Params) (util.Address, error) {
+	addr, err := util.DecodeAddress(s, params)
 	if err != nil {
 		msg := fmt.Sprintf("Invalid address %q: decode failed with %#q", s, err)
 		return nil, &btcjson.RPCError{
@@ -612,7 +612,7 @@ func importPrivKey(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		return nil, &ErrNotImportedAccount
 	}
 
-	wif, err := btcutil.DecodeWIF(cmd.PrivKey)
+	wif, err := util.DecodeWIF(cmd.PrivKey)
 	if err != nil {
 		return nil, &btcjson.RPCError{
 			Code:    btcjson.ErrRPCInvalidAddressOrKey,
@@ -830,9 +830,9 @@ func getTransaction(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	}
 
 	var (
-		debitTotal  btcutil.Amount
-		creditTotal btcutil.Amount // Excludes change
-		fee         btcutil.Amount
+		debitTotal  util.Amount
+		creditTotal util.Amount // Excludes change
+		fee         util.Amount
 		feeF64      float64
 	)
 	for _, deb := range details.Debits {
@@ -845,9 +845,9 @@ func getTransaction(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	}
 	// Fee can only be determined if every input is a debit.
 	if len(details.Debits) == len(details.MsgTx.TxIn) {
-		var outputTotal btcutil.Amount
+		var outputTotal util.Amount
 		for _, output := range details.MsgTx.TxOut {
-			outputTotal += btcutil.Amount(output.Value)
+			outputTotal += util.Amount(output.Value)
 		}
 		fee = debitTotal - outputTotal
 		feeF64 = fee.ToBTC()
@@ -1109,7 +1109,7 @@ func listReceivedByAddress(icmd interface{}, w *wallet.Wallet) (interface{}, err
 	// Intermediate data for each address.
 	type AddrData struct {
 		// Total amount received.
-		amount btcutil.Amount
+		amount util.Amount
 		// Number of confirmations of the last transaction.
 		confirmations int32
 		// Hashes of transactions which include an output paying to the address
@@ -1350,10 +1350,10 @@ func lockUnspent(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 // strings to amounts.  This is used to create the outputs to include in newly
 // created transactions from a JSON object describing the output destinations
 // and amounts.
-func makeOutputs(pairs map[string]btcutil.Amount, chainParams *chaincfg.Params) ([]*wire.TxOut, error) {
+func makeOutputs(pairs map[string]util.Amount, chainParams *chaincfg.Params) ([]*wire.TxOut, error) {
 	outputs := make([]*wire.TxOut, 0, len(pairs))
 	for addrStr, amt := range pairs {
-		addr, err := btcutil.DecodeAddress(addrStr, chainParams)
+		addr, err := util.DecodeAddress(addrStr, chainParams)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode address: %s", err)
 		}
@@ -1371,8 +1371,8 @@ func makeOutputs(pairs map[string]btcutil.Amount, chainParams *chaincfg.Params) 
 // sendPairs creates and sends payment transactions.
 // It returns the transaction hash in string format upon success
 // All errors are returned in btcjson.RPCError format
-func sendPairs(w *wallet.Wallet, amounts map[string]btcutil.Amount,
-	account uint32, minconf int32, feeSatPerKb btcutil.Amount) (string, error) {
+func sendPairs(w *wallet.Wallet, amounts map[string]util.Amount,
+	account uint32, minconf int32, feeSatPerKb util.Amount) (string, error) {
 
 	outputs, err := makeOutputs(amounts, w.ChainParams())
 	if err != nil {
@@ -1439,11 +1439,11 @@ func sendFrom(icmd interface{}, w *wallet.Wallet, chainClient *chain.RPCClient) 
 		return nil, ErrNeedPositiveMinconf
 	}
 	// Create map of address and amount pairs.
-	amt, err := btcutil.NewAmount(cmd.Amount)
+	amt, err := util.NewAmount(cmd.Amount)
 	if err != nil {
 		return nil, err
 	}
-	pairs := map[string]btcutil.Amount{
+	pairs := map[string]util.Amount{
 		cmd.ToAddress: amt,
 	}
 
@@ -1480,9 +1480,9 @@ func sendMany(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	}
 
 	// Recreate address/amount pairs, using dcrutil.Amount.
-	pairs := make(map[string]btcutil.Amount, len(cmd.Amounts))
+	pairs := make(map[string]util.Amount, len(cmd.Amounts))
 	for k, v := range cmd.Amounts {
-		amt, err := btcutil.NewAmount(v)
+		amt, err := util.NewAmount(v)
 		if err != nil {
 			return nil, err
 		}
@@ -1509,7 +1509,7 @@ func sendToAddress(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		}
 	}
 
-	amt, err := btcutil.NewAmount(cmd.Amount)
+	amt, err := util.NewAmount(cmd.Amount)
 	if err != nil {
 		return nil, err
 	}
@@ -1520,7 +1520,7 @@ func sendToAddress(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	}
 
 	// Mock up map of address and amount pairs.
-	pairs := map[string]btcutil.Amount{
+	pairs := map[string]util.Amount{
 		cmd.Address: amt,
 	}
 
@@ -1635,7 +1635,7 @@ func signRawTransaction(icmd interface{}, w *wallet.Wallet, chainClient *chain.R
 				return nil, err
 			}
 
-			addr, err := btcutil.NewAddressScriptHash(redeemScript,
+			addr, err := util.NewAddressScriptHash(redeemScript,
 				w.ChainParams())
 			if err != nil {
 				return nil, DeserializationError{err}
@@ -1668,12 +1668,12 @@ func signRawTransaction(icmd interface{}, w *wallet.Wallet, chainClient *chain.R
 	// Parse list of private keys, if present. If there are any keys here
 	// they are the keys that we may use for signing. If empty we will
 	// use any keys known to us already.
-	var keys map[string]*btcutil.WIF
+	var keys map[string]*util.WIF
 	if cmd.PrivKeys != nil {
-		keys = make(map[string]*btcutil.WIF)
+		keys = make(map[string]*util.WIF)
 
 		for _, key := range *cmd.PrivKeys {
-			wif, err := btcutil.DecodeWIF(key)
+			wif, err := util.DecodeWIF(key)
 			if err != nil {
 				return nil, DeserializationError{err}
 			}
@@ -1683,7 +1683,7 @@ func signRawTransaction(icmd interface{}, w *wallet.Wallet, chainClient *chain.R
 				return nil, DeserializationError{errors.New(s)}
 			}
 
-			addr, err := btcutil.NewAddressPubKey(wif.SerializePubKey(),
+			addr, err := util.NewAddressPubKey(wif.SerializePubKey(),
 				w.ChainParams())
 			if err != nil {
 				return nil, DeserializationError{err}
@@ -1860,9 +1860,9 @@ func verifyMessage(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	}
 	// Verify that the signed-by address matches the given address
 	switch checkAddr := addr.(type) {
-	case *btcutil.AddressPubKeyHash: // ok
-		return bytes.Equal(btcutil.Hash160(serializedPubKey), checkAddr.Hash160()[:]), nil
-	case *btcutil.AddressPubKey: // ok
+	case *util.AddressPubKeyHash: // ok
+		return bytes.Equal(util.Hash160(serializedPubKey), checkAddr.Hash160()[:]), nil
+	case *util.AddressPubKey: // ok
 		return string(serializedPubKey) == checkAddr.String(), nil
 	default:
 		return nil, errors.New("address type not supported")

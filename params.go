@@ -4,6 +4,6 @@
 
 package main
 
-import "github.com/btcsuite/btcwallet/netparams"
+import "github.com/endurio/ndrw/netparams"
 
 var activeNet = &netparams.MainNetParams

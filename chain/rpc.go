@@ -9,16 +9,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/btcsuite/btcd/btcjson"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/rpcclient"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcutil/gcs"
-	"github.com/btcsuite/btcutil/gcs/builder"
-	"github.com/btcsuite/btcwallet/waddrmgr"
-	"github.com/btcsuite/btcwallet/wtxmgr"
+	"github.com/endurio/ndrd/btcjson"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/rpcclient"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrd/util/gcs"
+	"github.com/endurio/ndrd/util/gcs/builder"
+	"github.com/endurio/ndrw/waddrmgr"
+	"github.com/endurio/ndrw/wtxmgr"
 )
 
 // RPCClient represents a persistent client connection to a bitcoin RPC server
@@ -144,8 +144,8 @@ func (c *RPCClient) Stop() {
 // allows us to map an oupoint to the address in the chain that it pays to.
 // This is useful when using BIP 158 filters as they include the prev pkScript
 // rather than the full outpoint.
-func (c *RPCClient) Rescan(startHash *chainhash.Hash, addrs []btcutil.Address,
-	outPoints map[wire.OutPoint]btcutil.Address) error {
+func (c *RPCClient) Rescan(startHash *chainhash.Hash, addrs []util.Address,
+	outPoints map[wire.OutPoint]util.Address) error {
 
 	flatOutpoints := make([]*wire.OutPoint, 0, len(outPoints))
 	for ops := range outPoints {
@@ -322,7 +322,7 @@ func (c *RPCClient) onBlockDisconnected(hash *chainhash.Hash, height int32, time
 	}
 }
 
-func (c *RPCClient) onRecvTx(tx *btcutil.Tx, block *btcjson.BlockDetails) {
+func (c *RPCClient) onRecvTx(tx *util.Tx, block *btcjson.BlockDetails) {
 	blk, err := parseBlock(block)
 	if err != nil {
 		// Log and drop improper notification.
@@ -342,7 +342,7 @@ func (c *RPCClient) onRecvTx(tx *btcutil.Tx, block *btcjson.BlockDetails) {
 	}
 }
 
-func (c *RPCClient) onRedeemingTx(tx *btcutil.Tx, block *btcjson.BlockDetails) {
+func (c *RPCClient) onRedeemingTx(tx *util.Tx, block *btcjson.BlockDetails) {
 	// Handled exactly like recvtx notifications.
 	c.onRecvTx(tx, block)
 }

@@ -1,10 +1,10 @@
-btcwallet
+ndrw
 =========
 
-[![Build Status](https://travis-ci.org/btcsuite/btcwallet.png?branch=master)](https://travis-ci.org/btcsuite/btcwallet)
-[![Build status](https://ci.appveyor.com/api/projects/status/88nxvckdj8upqr36/branch/master?svg=true)](https://ci.appveyor.com/project/jrick/btcwallet/branch/master)
+[![Build Status](https://travis-ci.org/endurio/ndrw.png?branch=master)](https://travis-ci.org/endurio/ndrw)
+[![Build status](https://ci.appveyor.com/api/projects/status/88nxvckdj8upqr36/branch/master?svg=true)](https://ci.appveyor.com/project/jrick/ndrw/branch/master)
 
-btcwallet is a daemon handling bitcoin wallet functionality for a
+ndrw is a daemon handling bitcoin wallet functionality for a
 single user.  It acts as both an RPC client to btcd and an RPC server
 for wallet clients and legacy RPC applications.
 
@@ -12,13 +12,13 @@ Public and private keys are derived using the hierarchical
 deterministic format described by
 [BIP0032](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki).
 Unencrypted private keys are not supported and are never written to
-disk.  btcwallet uses the
+disk.  ndrw uses the
 `m/44'/<coin type>'/<account>'/<branch>/<address index>`
 HD path for all derived addresses, as described by
 [BIP0044](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki).
 
 Due to the sensitive nature of public data in a BIP0032 wallet,
-btcwallet provides the option of encrypting not just private keys, but
+ndrw provides the option of encrypting not just private keys, but
 public data as well.  This is intended to thwart privacy risks where a
 wallet file is compromised without exposing all current and future
 addresses (public keys) managed by the wallet. While access to this
@@ -27,10 +27,10 @@ does mean they could track all transactions involving your addresses
 and therefore know your exact balance.  In a future release, public data
 encryption will extend to transactions as well.
 
-btcwallet is not an SPV client and requires connecting to a local or
+ndrw is not an SPV client and requires connecting to a local or
 remote btcd instance for asynchronous blockchain queries and
 notifications over websockets.  Full btcd installation instructions
-can be found [here](https://github.com/btcsuite/btcd).  An alternative
+can be found [here](https://github.com/endurio/ndrw).  An alternative
 SPV mode that is compatible with btcd and Bitcoin Core is planned for
 a future release.
 
@@ -47,7 +47,7 @@ Wallet clients can use one of two RPC servers:
 
   2. An experimental gRPC server
 
-     The gRPC server uses a new API built for btcwallet, but the API is not
+     The gRPC server uses a new API built for ndrw, but the API is not
      stabilized and the server is feature gated behind a config option
      (`--experimentalrpclisten`).  If you don't mind applications breaking due
      to API changes, don't want to deal with issues of the legacy API, or need
@@ -60,9 +60,9 @@ Wallet clients can use one of two RPC servers:
 
 Install the latest MSIs available here:
 
-https://github.com/btcsuite/btcd/releases
+https://github.com/endurio/ndrw/releases
 
-https://github.com/btcsuite/btcwallet/releases
+https://github.com/endurio/ndrw/releases
 
 ### Windows/Linux/BSD/POSIX - Build from source
 
@@ -96,8 +96,8 @@ For a first time installation, the project and dependency sources can be
 obtained manually with `git` and `glide` (create directories as needed):
 
 ```
-git clone https://github.com/btcsuite/btcwallet $GOPATH/src/github.com/btcsuite/btcwallet
-cd $GOPATH/src/github.com/btcsuite/btcwallet
+git clone https://github.com/endurio/ndrw $GOPATH/src/github.com/endurio/ndrw
+cd $GOPATH/src/github.com/endurio/ndrw
 glide install
 ```
 
@@ -105,7 +105,7 @@ To update an existing source tree, pull the latest changes and install the
 matching dependencies:
 
 ```
-cd $GOPATH/src/github.com/btcsuite/btcwallet
+cd $GOPATH/src/github.com/endurio/ndrw
 git pull
 glide install
 ```
@@ -113,10 +113,10 @@ glide install
 **Building/Installing**:
 
 The `go` tool is used to build or install (to `GOPATH`) the project.  Some
-example build instructions are provided below (all must run from the `btcwallet`
+example build instructions are provided below (all must run from the `ndrw`
 project directory).
 
-To build and install `btcwallet` and all helper commands (in the `cmd`
+To build and install `ndrw` and all helper commands (in the `cmd`
 directory) to `$GOPATH/bin/`, as well as installing all compiled packages to
 `$GOPATH/pkg/` (**use this if you are unsure which command to run**):
 
@@ -124,13 +124,13 @@ directory) to `$GOPATH/bin/`, as well as installing all compiled packages to
 go install . ./cmd/...
 ```
 
-To build a `btcwallet` executable and install it to `$GOPATH/bin/`:
+To build a `ndrw` executable and install it to `$GOPATH/bin/`:
 
 ```
 go install
 ```
 
-To build a `btcwallet` executable and place it in the current directory:
+To build a `ndrw` executable and place it in the current directory:
 
 ```
 go build
@@ -138,7 +138,7 @@ go build
 
 ## Getting Started
 
-The following instructions detail how to get started with btcwallet connecting
+The following instructions detail how to get started with ndrw connecting
 to a localhost btcd.  Commands should be run in `cmd.exe` or PowerShell on
 Windows, or any terminal emulator on *nix.
 
@@ -151,46 +151,46 @@ btcd -u rpcuser -P rpcpass
 - Run the following command to create a wallet:
 
 ```
-btcwallet -u rpcuser -P rpcpass --create
+ndrw -u rpcuser -P rpcpass --create
 ```
 
-- Run the following command to start btcwallet:
+- Run the following command to start ndrw:
 
 ```
-btcwallet -u rpcuser -P rpcpass
+ndrw -u rpcuser -P rpcpass
 ```
 
 If everything appears to be working, it is recommended at this point to
-copy the sample btcd and btcwallet configurations and update with your
+copy the sample btcd and ndrw configurations and update with your
 RPC username and password.
 
 PowerShell (Installed from MSI):
 ```
 PS> cp "$env:ProgramFiles\Btcd Suite\Btcd\sample-btcd.conf" $env:LOCALAPPDATA\Btcd\btcd.conf
-PS> cp "$env:ProgramFiles\Btcd Suite\Btcwallet\sample-btcwallet.conf" $env:LOCALAPPDATA\Btcwallet\btcwallet.conf
+PS> cp "$env:ProgramFiles\Btcd Suite\Btcwallet\sample-ndrw.conf" $env:LOCALAPPDATA\Btcwallet\ndrw.conf
 PS> $editor $env:LOCALAPPDATA\Btcd\btcd.conf
-PS> $editor $env:LOCALAPPDATA\Btcwallet\btcwallet.conf
+PS> $editor $env:LOCALAPPDATA\Btcwallet\ndrw.conf
 ```
 
 PowerShell (Installed from source):
 ```
 PS> cp $env:GOPATH\src\github.com\btcsuite\btcd\sample-btcd.conf $env:LOCALAPPDATA\Btcd\btcd.conf
-PS> cp $env:GOPATH\src\github.com\btcsuite\btcwallet\sample-btcwallet.conf $env:LOCALAPPDATA\Btcwallet\btcwallet.conf
+PS> cp $env:GOPATH\src\github.com\btcsuite\ndrw\sample-ndrw.conf $env:LOCALAPPDATA\Btcwallet\ndrw.conf
 PS> $editor $env:LOCALAPPDATA\Btcd\btcd.conf
-PS> $editor $env:LOCALAPPDATA\Btcwallet\btcwallet.conf
+PS> $editor $env:LOCALAPPDATA\Btcwallet\ndrw.conf
 ```
 
 Linux/BSD/POSIX (Installed from source):
 ```bash
-$ cp $GOPATH/src/github.com/btcsuite/btcd/sample-btcd.conf ~/.btcd/btcd.conf
-$ cp $GOPATH/src/github.com/btcsuite/btcwallet/sample-btcwallet.conf ~/.btcwallet/btcwallet.conf
+$ cp $GOPATH/src/github.com/endurio/ndrw/sample-btcd.conf ~/.btcd/btcd.conf
+$ cp $GOPATH/src/github.com/endurio/ndrw/sample-ndrw.conf ~/.ndrw/ndrw.conf
 $ $EDITOR ~/.btcd/btcd.conf
-$ $EDITOR ~/.btcwallet/btcwallet.conf
+$ $EDITOR ~/.ndrw/ndrw.conf
 ```
 
 ## Issue Tracker
 
-The [integrated github issue tracker](https://github.com/btcsuite/btcwallet/issues)
+The [integrated github issue tracker](https://github.com/endurio/ndrw/issues)
 is used for this project.
 
 ## GPG Verification Key
@@ -215,4 +215,4 @@ verify the signature perform the following:
 
 ## License
 
-btcwallet is licensed under the liberal ISC License.
+ndrw is licensed under the liberal ISC License.

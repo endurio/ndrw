@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcwallet/walletdb"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrw/walletdb"
 )
 
 type queryState struct {
@@ -294,7 +294,7 @@ func TestStoreQueries(t *testing.T) {
 	newState.blocks[0][0].Credits = []CreditRecord{
 		{
 			Index:  0,
-			Amount: btcutil.Amount(recA.MsgTx.TxOut[0].Value),
+			Amount: util.Amount(recA.MsgTx.TxOut[0].Value),
 			Spent:  false,
 			Change: true,
 		},
@@ -323,7 +323,7 @@ func TestStoreQueries(t *testing.T) {
 		Block:    BlockMeta{Block: Block{Height: -1}},
 		Debits: []DebitRecord{
 			{
-				Amount: btcutil.Amount(recA.MsgTx.TxOut[0].Value),
+				Amount: util.Amount(recA.MsgTx.TxOut[0].Value),
 				Index:  0, // recB.MsgTx.TxIn index
 			},
 		},
@@ -342,7 +342,7 @@ func TestStoreQueries(t *testing.T) {
 	newState.blocks[0][1].Credits = []CreditRecord{
 		{
 			Index:  0,
-			Amount: btcutil.Amount(recB.MsgTx.TxOut[0].Value),
+			Amount: util.Amount(recB.MsgTx.TxOut[0].Value),
 			Spent:  false,
 			Change: false,
 		},

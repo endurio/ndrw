@@ -10,13 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcwallet/chain"
-	"github.com/btcsuite/btcwallet/waddrmgr"
-	"github.com/btcsuite/btcwallet/walletdb"
-	"github.com/btcsuite/btcwallet/wtxmgr"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/txscript"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrw/chain"
+	"github.com/endurio/ndrw/waddrmgr"
+	"github.com/endurio/ndrw/walletdb"
+	"github.com/endurio/ndrw/wtxmgr"
 )
 
 const (

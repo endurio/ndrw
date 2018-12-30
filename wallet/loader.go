@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcwallet/internal/prompt"
-	"github.com/btcsuite/btcwallet/waddrmgr"
-	"github.com/btcsuite/btcwallet/walletdb"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrw/internal/prompt"
+	"github.com/endurio/ndrw/waddrmgr"
+	"github.com/endurio/ndrw/walletdb"
 )
 
 const (

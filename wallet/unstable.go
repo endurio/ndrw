@@ -6,9 +6,9 @@
 package wallet
 
 import (
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcwallet/walletdb"
-	"github.com/btcsuite/btcwallet/wtxmgr"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrw/walletdb"
+	"github.com/endurio/ndrw/wtxmgr"
 )
 
 type unstableAPI struct {

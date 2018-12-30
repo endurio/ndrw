@@ -12,8 +12,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcwallet/walletdb"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrw/walletdb"
 )
 
 var (

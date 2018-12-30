@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/btcsuite/btcwallet/walletdb"
-	_ "github.com/btcsuite/btcwallet/walletdb/bdb"
+	"github.com/endurio/ndrw/walletdb"
+	_ "github.com/endurio/ndrw/walletdb/bdb"
 )
 
 // dbType is the database type name for this driver.

@@ -11,16 +11,16 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcwallet/internal/legacy/keystore"
-	"github.com/btcsuite/btcwallet/internal/prompt"
-	"github.com/btcsuite/btcwallet/waddrmgr"
-	"github.com/btcsuite/btcwallet/wallet"
-	"github.com/btcsuite/btcwallet/walletdb"
-	_ "github.com/btcsuite/btcwallet/walletdb/bdb"
+	"github.com/endurio/ndrd/btcec"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrw/internal/legacy/keystore"
+	"github.com/endurio/ndrw/internal/prompt"
+	"github.com/endurio/ndrw/waddrmgr"
+	"github.com/endurio/ndrw/wallet"
+	"github.com/endurio/ndrw/walletdb"
+	_ "github.com/endurio/ndrw/walletdb/bdb"
 )
 
 // networkDir returns the directory name of a network directory to hold wallet
@@ -60,7 +60,7 @@ func convertLegacyKeystore(legacyKeyStore *keystore.Store, w *wallet.Wallet) err
 				continue
 			}
 
-			wif, err := btcutil.NewWIF((*btcec.PrivateKey)(privKey),
+			wif, err := util.NewWIF((*btcec.PrivateKey)(privKey),
 				netParams, addr.Compressed())
 			if err != nil {
 				fmt.Printf("WARN: Failed to create wallet "+

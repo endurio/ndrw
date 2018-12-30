@@ -15,21 +15,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcwallet/internal/cfgutil"
-	"github.com/btcsuite/btcwallet/internal/legacy/keystore"
-	"github.com/btcsuite/btcwallet/netparams"
-	"github.com/btcsuite/btcwallet/wallet"
+	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrw/internal/cfgutil"
+	"github.com/endurio/ndrw/internal/legacy/keystore"
+	"github.com/endurio/ndrw/netparams"
+	"github.com/endurio/ndrw/wallet"
 	flags "github.com/jessevdk/go-flags"
-	"github.com/lightninglabs/neutrino"
+	"github.com/endurio/neutrino"
 )
 
 const (
 	defaultCAFilename       = "btcd.cert"
-	defaultConfigFilename   = "btcwallet.conf"
+	defaultConfigFilename   = "ndrw.conf"
 	defaultLogLevel         = "info"
 	defaultLogDirname       = "logs"
-	defaultLogFilename      = "btcwallet.log"
+	defaultLogFilename      = "ndrw.log"
 	defaultRPCMaxClients    = 10
 	defaultRPCMaxWebsockets = 25
 
@@ -37,8 +37,8 @@ const (
 )
 
 var (
-	btcdDefaultCAFile  = filepath.Join(btcutil.AppDataDir("btcd", false), "rpc.cert")
-	defaultAppDataDir  = btcutil.AppDataDir("btcwallet", false)
+	btcdDefaultCAFile  = filepath.Join(util.AppDataDir("btcd", false), "rpc.cert")
+	defaultAppDataDir  = util.AppDataDir("ndrw", false)
 	defaultConfigFile  = filepath.Join(defaultAppDataDir, defaultConfigFilename)
 	defaultRPCKeyFile  = filepath.Join(defaultAppDataDir, "rpc.key")
 	defaultRPCCertFile = filepath.Join(defaultAppDataDir, "rpc.cert")
@@ -250,7 +250,7 @@ func parseAndSetDebugLevels(debugLevel string) error {
 //      3) Load configuration file overwriting defaults with any specified options
 //      4) Parse CLI options and overwrite/add any specified options
 //
-// The above results in btcwallet functioning properly without any config
+// The above results in ndrw functioning properly without any config
 // settings while still allowing the user to override settings with config files
 // and command line options.  Command line options always take precedence.
 func loadConfig() (*config, []string, error) {

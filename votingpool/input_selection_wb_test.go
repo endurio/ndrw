@@ -10,16 +10,16 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcwallet/walletdb"
-	"github.com/btcsuite/btcwallet/wtxmgr"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrw/walletdb"
+	"github.com/endurio/ndrw/wtxmgr"
 )
 
 var (
 	// random small number of satoshis used as dustThreshold
-	dustThreshold btcutil.Amount = 1e4
+	dustThreshold util.Amount = 1e4
 )
 
 func TestGetEligibleInputs(t *testing.T) {
