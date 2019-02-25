@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/endurio/ndrd/util/hdkeychain"
+	"github.com/endurio/ndrd/chainutil/hdkeychain"
 )
 
 var (

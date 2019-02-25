@@ -26,7 +26,7 @@ import (
 
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/txscript"
-	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrd/chainutil"
 	"github.com/endurio/ndrw/votingpool"
 	"github.com/endurio/ndrw/waddrmgr"
 	"github.com/endurio/ndrw/walletdb"
@@ -207,7 +207,7 @@ func Example_startWithdrawal() {
 		}
 		defer mgr.Lock()
 
-		addr, _ := util.DecodeAddress("1MirQ9bwyQcGVJPwKUgapu5ouK2E2Ey4gX", mgr.ChainParams())
+		addr, _ := chainutil.DecodeAddress("1MirQ9bwyQcGVJPwKUgapu5ouK2E2Ey4gX", mgr.ChainParams())
 		pkScript, _ := txscript.PayToAddrScript(addr)
 		requests := []votingpool.OutputRequest{
 			{
@@ -234,7 +234,7 @@ func Example_startWithdrawal() {
 			return err
 		}
 		lastSeriesID := seriesID
-		dustThreshold := util.Amount(1e4)
+		dustThreshold := chainutil.Amount(1e4)
 		currentBlock := int32(19432)
 		roundID := uint32(0)
 		_, err = pool.StartWithdrawal(ns, addrmgrNs,

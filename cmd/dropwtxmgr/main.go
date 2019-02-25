@@ -11,10 +11,11 @@ import (
 	"path/filepath"
 
 	"github.com/endurio/ndrd/chainutil"
+	"github.com/endurio/ndrw/waddrmgr"
 	"github.com/endurio/ndrw/walletdb"
 	_ "github.com/endurio/ndrw/walletdb/bdb"
 	"github.com/endurio/ndrw/wtxmgr"
-	"github.com/jessevdk/go-flags"
+	flags "github.com/jessevdk/go-flags"
 )
 
 const defaultNet = "mainnet"
@@ -105,7 +106,7 @@ func mainInt() int {
 	}
 	defer db.Close()
 
-	fmt.Println("Dropping btcwallet transaction history")
+	fmt.Println("Dropping ndrw transaction history")
 
 	err = walletdb.Update(db, func(tx walletdb.ReadWriteTx) error {
 		err := tx.DeleteTopLevelBucket(wtxmgrNamespace)

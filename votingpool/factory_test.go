@@ -31,8 +31,8 @@ import (
 	"github.com/endurio/ndrd/chaincfg/chainhash"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
-	"github.com/endurio/ndrd/util"
-	"github.com/endurio/ndrd/util/hdkeychain"
+	"github.com/endurio/ndrd/chainutil"
+	"github.com/endurio/ndrd/chainutil/hdkeychain"
 	"github.com/endurio/ndrw/waddrmgr"
 	"github.com/endurio/ndrw/walletdb"
 	"github.com/endurio/ndrw/wtxmgr"
@@ -62,7 +62,7 @@ func createWithdrawalTx(t *testing.T, dbtx walletdb.ReadWriteTx, pool *Pool, inp
 	}
 	for i, amount := range outputAmounts {
 		request := TstNewOutputRequest(
-			t, uint32(i), "34eVkREKgvvGASZW7hkgE2uNc1yycntMK6", util.Amount(amount), net)
+			t, uint32(i), "34eVkREKgvvGASZW7hkgE2uNc1yycntMK6", chainutil.Amount(amount), net)
 		tx.addOutput(request)
 	}
 	return tx
@@ -253,7 +253,7 @@ func TstCreateSeriesCredits(t *testing.T, dbtx walletdb.ReadWriteTx, pool *Pool,
 			BlockMeta: wtxmgr.BlockMeta{
 				Block: wtxmgr.Block{Height: TstInputsBlock},
 			},
-			Amount:   util.Amount(msgTx.TxOut[i].Value),
+			Amount:   chainutil.Amount(msgTx.TxOut[i].Value),
 			PkScript: msgTx.TxOut[i].PkScript,
 		}
 		credits[i] = newCredit(c, *addr)
@@ -305,7 +305,7 @@ func TstCreateCreditsOnStore(t *testing.T, dbtx walletdb.ReadWriteTx, s *wtxmgr.
 				Index: uint32(i),
 			},
 			BlockMeta: *meta,
-			Amount:    util.Amount(msgTx.TxOut[i].Value),
+			Amount:    chainutil.Amount(msgTx.TxOut[i].Value),
 			PkScript:  msgTx.TxOut[i].PkScript,
 		}
 	}
@@ -390,9 +390,9 @@ func TstCreateTxStore(t *testing.T, db walletdb.DB) *wtxmgr.Store {
 	return store
 }
 
-func TstNewOutputRequest(t *testing.T, transaction uint32, address string, amount util.Amount,
+func TstNewOutputRequest(t *testing.T, transaction uint32, address string, amount chainutil.Amount,
 	net *chaincfg.Params) OutputRequest {
-	addr, err := util.DecodeAddress(address, net)
+	addr, err := chainutil.DecodeAddress(address, net)
 	if err != nil {
 		t.Fatalf("Unable to decode address %s", address)
 	}
@@ -441,8 +441,8 @@ func TstNewChangeAddress(t *testing.T, p *Pool, seriesID uint32, idx Index) (add
 	return addr
 }
 
-func TstConstantFee(fee util.Amount) func() util.Amount {
-	return func() util.Amount { return fee }
+func TstConstantFee(fee chainutil.Amount) func() chainutil.Amount {
+	return func() chainutil.Amount { return fee }
 }
 
 func createAndFulfillWithdrawalRequests(t *testing.T, dbtx walletdb.ReadWriteTx, pool *Pool, roundID uint32) withdrawalInfo {
@@ -454,7 +454,7 @@ func createAndFulfillWithdrawalRequests(t *testing.T, dbtx walletdb.ReadWriteTx,
 		TstNewOutputRequest(t, 2, "3PbExiaztsSYgh6zeMswC49hLUwhTQ86XG", 2e6, params),
 	}
 	changeStart := TstNewChangeAddress(t, pool, seriesID, 0)
-	dustThreshold := util.Amount(1e4)
+	dustThreshold := chainutil.Amount(1e4)
 	startAddr := TstNewWithdrawalAddress(t, dbtx, pool, seriesID, 1, 0)
 	lastSeriesID := seriesID
 	w := newWithdrawal(roundID, requests, eligible, *changeStart)

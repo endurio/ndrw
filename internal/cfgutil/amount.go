@@ -8,17 +8,17 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrd/chainutil"
 )
 
-// AmountFlag embeds a util.Amount and implements the flags.Marshaler and
+// AmountFlag embeds a chainutil.Amount and implements the flags.Marshaler and
 // Unmarshaler interfaces so it can be used as a config struct field.
 type AmountFlag struct {
-	util.Amount
+	chainutil.Amount
 }
 
-// NewAmountFlag creates an AmountFlag with a default util.Amount.
-func NewAmountFlag(defaultValue util.Amount) *AmountFlag {
+// NewAmountFlag creates an AmountFlag with a default chainutil.Amount.
+func NewAmountFlag(defaultValue chainutil.Amount) *AmountFlag {
 	return &AmountFlag{defaultValue}
 }
 
@@ -34,7 +34,7 @@ func (a *AmountFlag) UnmarshalFlag(value string) error {
 	if err != nil {
 		return err
 	}
-	amount, err := util.NewAmount(valueF64)
+	amount, err := chainutil.NewAmount(valueF64)
 	if err != nil {
 		return err
 	}

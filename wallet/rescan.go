@@ -7,7 +7,7 @@ package wallet
 import (
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
-	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrd/chainutil"
 	"github.com/endurio/ndrw/chain"
 	"github.com/endurio/ndrw/waddrmgr"
 	"github.com/endurio/ndrw/wtxmgr"
@@ -16,14 +16,14 @@ import (
 // RescanProgressMsg reports the current progress made by a rescan for a
 // set of wallet addresses.
 type RescanProgressMsg struct {
-	Addresses    []util.Address
+	Addresses    []chainutil.Address
 	Notification *chain.RescanProgress
 }
 
 // RescanFinishedMsg reports the addresses that were rescanned when a
 // rescanfinished message was received rescanning a batch of addresses.
 type RescanFinishedMsg struct {
-	Addresses    []util.Address
+	Addresses    []chainutil.Address
 	Notification *chain.RescanFinished
 }
 
@@ -34,8 +34,8 @@ type RescanFinishedMsg struct {
 // channel.
 type RescanJob struct {
 	InitialSync bool
-	Addrs       []util.Address
-	OutPoints   map[wire.OutPoint]util.Address
+	Addrs       []chainutil.Address
+	OutPoints   map[wire.OutPoint]chainutil.Address
 	BlockStamp  waddrmgr.BlockStamp
 	err         chan error
 }
@@ -44,8 +44,8 @@ type RescanJob struct {
 // together before a rescan is performed.
 type rescanBatch struct {
 	initialSync bool
-	addrs       []util.Address
-	outpoints   map[wire.OutPoint]util.Address
+	addrs       []chainutil.Address
+	outpoints   map[wire.OutPoint]chainutil.Address
 	bs          waddrmgr.BlockStamp
 	errChans    []chan error
 }
@@ -244,16 +244,16 @@ out:
 // a wallet.  This is intended to be used to sync a wallet back up to the
 // current best block in the main chain, and is considered an initial sync
 // rescan.
-func (w *Wallet) Rescan(addrs []util.Address, unspent []wtxmgr.Credit) error {
+func (w *Wallet) Rescan(addrs []chainutil.Address, unspent []wtxmgr.Credit) error {
 	return w.rescanWithTarget(addrs, unspent, nil)
 }
 
 // rescanWithTarget performs a rescan starting at the optional startStamp. If
 // none is provided, the rescan will begin from the manager's sync tip.
-func (w *Wallet) rescanWithTarget(addrs []util.Address,
+func (w *Wallet) rescanWithTarget(addrs []chainutil.Address,
 	unspent []wtxmgr.Credit, startStamp *waddrmgr.BlockStamp) error {
 
-	outpoints := make(map[wire.OutPoint]util.Address, len(unspent))
+	outpoints := make(map[wire.OutPoint]chainutil.Address, len(unspent))
 	for _, output := range unspent {
 		_, outputAddrs, _, err := txscript.ExtractPkScriptAddrs(
 			output.PkScript, w.chainParams,

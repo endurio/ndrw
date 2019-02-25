@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/endurio/ndrd/util/hdkeychain"
+	"github.com/endurio/ndrd/chainutil/hdkeychain"
 	vp "github.com/endurio/ndrw/votingpool"
 	"github.com/endurio/ndrw/waddrmgr"
 	"github.com/endurio/ndrw/walletdb"
@@ -974,7 +974,7 @@ func createTestPubKeys(t *testing.T, number, offset int) []*hdkeychain.ExtendedK
 }
 
 func TestReverse(t *testing.T) {
-	// Test the utility function that reverses a list of public keys.
+	// Test the chainutil.ty function that reverses a list of public keys.
 	// 11 is arbitrary.
 	for numKeys := 0; numKeys < 11; numKeys++ {
 		keys := createTestPubKeys(t, numKeys, 0)

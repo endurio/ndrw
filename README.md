@@ -5,7 +5,7 @@ ndrw
 [![Build status](https://ci.appveyor.com/api/projects/status/88nxvckdj8upqr36/branch/master?svg=true)](https://ci.appveyor.com/project/jrick/ndrw/branch/master)
 
 ndrw is a daemon handling bitcoin wallet functionality for a
-single user.  It acts as both an RPC client to btcd and an RPC server
+single user.  It acts as both an RPC client to ndrd and an RPC server
 for wallet clients and legacy RPC applications.
 
 Public and private keys are derived using the hierarchical
@@ -28,10 +28,10 @@ and therefore know your exact balance.  In a future release, public data
 encryption will extend to transactions as well.
 
 ndrw is not an SPV client and requires connecting to a local or
-remote btcd instance for asynchronous blockchain queries and
-notifications over websockets.  Full btcd installation instructions
+remote ndrd instance for asynchronous blockchain queries and
+notifications over websockets.  Full ndrd installation instructions
 can be found [here](https://github.com/endurio/ndrw).  An alternative
-SPV mode that is compatible with btcd and Bitcoin Core is planned for
+SPV mode that is compatible with ndrd and Bitcoin Core is planned for
 a future release.
 
 Wallet clients can use one of two RPC servers:
@@ -139,13 +139,13 @@ go build
 ## Getting Started
 
 The following instructions detail how to get started with ndrw connecting
-to a localhost btcd.  Commands should be run in `cmd.exe` or PowerShell on
+to a localhost ndrd.  Commands should be run in `cmd.exe` or PowerShell on
 Windows, or any terminal emulator on *nix.
 
-- Run the following command to start btcd:
+- Run the following command to start ndrd:
 
 ```
-btcd -u rpcuser -P rpcpass
+ndrd -u rpcuser -P rpcpass
 ```
 
 - Run the following command to create a wallet:
@@ -161,30 +161,30 @@ ndrw -u rpcuser -P rpcpass
 ```
 
 If everything appears to be working, it is recommended at this point to
-copy the sample btcd and ndrw configurations and update with your
+copy the sample ndrd and ndrw configurations and update with your
 RPC username and password.
 
 PowerShell (Installed from MSI):
 ```
-PS> cp "$env:ProgramFiles\Btcd Suite\Btcd\sample-btcd.conf" $env:LOCALAPPDATA\Btcd\btcd.conf
+PS> cp "$env:ProgramFiles\Btcd Suite\Btcd\sample-ndrd.conf" $env:LOCALAPPDATA\Btcd\ndrd.conf
 PS> cp "$env:ProgramFiles\Btcd Suite\Btcwallet\sample-ndrw.conf" $env:LOCALAPPDATA\Btcwallet\ndrw.conf
-PS> $editor $env:LOCALAPPDATA\Btcd\btcd.conf
+PS> $editor $env:LOCALAPPDATA\Btcd\ndrd.conf
 PS> $editor $env:LOCALAPPDATA\Btcwallet\ndrw.conf
 ```
 
 PowerShell (Installed from source):
 ```
-PS> cp $env:GOPATH\src\github.com\btcsuite\btcd\sample-btcd.conf $env:LOCALAPPDATA\Btcd\btcd.conf
+PS> cp $env:GOPATH\src\github.com\btcsuite\ndrd\sample-ndrd.conf $env:LOCALAPPDATA\Btcd\ndrd.conf
 PS> cp $env:GOPATH\src\github.com\btcsuite\ndrw\sample-ndrw.conf $env:LOCALAPPDATA\Btcwallet\ndrw.conf
-PS> $editor $env:LOCALAPPDATA\Btcd\btcd.conf
+PS> $editor $env:LOCALAPPDATA\Btcd\ndrd.conf
 PS> $editor $env:LOCALAPPDATA\Btcwallet\ndrw.conf
 ```
 
 Linux/BSD/POSIX (Installed from source):
 ```bash
-$ cp $GOPATH/src/github.com/endurio/ndrw/sample-btcd.conf ~/.btcd/btcd.conf
+$ cp $GOPATH/src/github.com/endurio/ndrw/sample-ndrd.conf ~/.ndrd/ndrd.conf
 $ cp $GOPATH/src/github.com/endurio/ndrw/sample-ndrw.conf ~/.ndrw/ndrw.conf
-$ $EDITOR ~/.btcd/btcd.conf
+$ $EDITOR ~/.ndrd/ndrd.conf
 $ $EDITOR ~/.ndrw/ndrw.conf
 ```
 

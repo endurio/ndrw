@@ -6,7 +6,7 @@ package votingpool
 
 import (
 	"github.com/endurio/ndrd/wire"
-	"github.com/endurio/ndrd/util/hdkeychain"
+	"github.com/endurio/ndrd/chainutil/hdkeychain"
 	"github.com/endurio/ndrw/waddrmgr"
 	"github.com/endurio/ndrw/walletdb"
 )

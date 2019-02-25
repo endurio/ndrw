@@ -12,7 +12,7 @@ import (
 
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
-	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrd/chainutil"
 	"github.com/endurio/ndrw/snacl"
 	"github.com/endurio/ndrw/walletdb"
 )
@@ -55,7 +55,7 @@ type dbWithdrawalRow struct {
 	StartAddress  dbWithdrawalAddress
 	ChangeStart   dbChangeAddress
 	LastSeriesID  uint32
-	DustThreshold util.Amount
+	DustThreshold chainutil.Amount
 	Status        dbWithdrawalStatus
 }
 
@@ -72,7 +72,7 @@ type dbChangeAddress struct {
 
 type dbOutputRequest struct {
 	Addr        string
-	Amount      util.Amount
+	Amount      chainutil.Amount
 	Server      string
 	Transaction uint32
 }
@@ -88,7 +88,7 @@ type dbWithdrawalOutput struct {
 type dbOutBailmentOutpoint struct {
 	Ntxid  Ntxid
 	Index  uint32
-	Amount util.Amount
+	Amount chainutil.Amount
 }
 
 type dbChangeAwareTx struct {
@@ -99,7 +99,7 @@ type dbChangeAwareTx struct {
 type dbWithdrawalStatus struct {
 	NextInputAddr  dbWithdrawalAddress
 	NextChangeAddr dbChangeAddress
-	Fees           util.Amount
+	Fees           chainutil.Amount
 	Outputs        map[OutBailmentID]dbWithdrawalOutput
 	Sigs           map[Ntxid]TxSigs
 	Transactions   map[Ntxid]dbChangeAwareTx
@@ -398,7 +398,7 @@ func serializeSeriesRow(row *dbSeriesRow) ([]byte, error) {
 // serializeWithdrawal constructs a dbWithdrawalRow and serializes it (using
 // encoding/gob) so that it can be stored in the DB.
 func serializeWithdrawal(requests []OutputRequest, startAddress WithdrawalAddress,
-	lastSeriesID uint32, changeStart ChangeAddress, dustThreshold util.Amount,
+	lastSeriesID uint32, changeStart ChangeAddress, dustThreshold chainutil.Amount,
 	status WithdrawalStatus) ([]byte, error) {
 
 	dbStartAddr := dbWithdrawalAddress{
@@ -492,7 +492,7 @@ func deserializeWithdrawal(p *Pool, ns, addrmgrNs walletdb.ReadBucket, serialize
 	// WithdrawalStatus.Outputs later on.
 	requestsByOID := make(map[OutBailmentID]OutputRequest)
 	for i, req := range row.Requests {
-		addr, err := util.DecodeAddress(req.Addr, chainParams)
+		addr, err := chainutil.DecodeAddress(req.Addr, chainParams)
 		if err != nil {
 			return nil, newError(ErrWithdrawalStorage,
 				"cannot deserialize addr for requested output", err)

@@ -16,7 +16,7 @@ import (
 
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrd/chainutil"
 	"github.com/endurio/ndrw/snacl"
 	"github.com/endurio/ndrw/walletdb"
 	"github.com/davecgh/go-spew/spew"
@@ -409,7 +409,7 @@ func testExternalAddresses(tc *testContext) bool {
 		chainParams := tc.manager.ChainParams()
 		for i := 0; i < len(expectedExternalAddrs); i++ {
 			pkHash := expectedExternalAddrs[i].addressHash
-			utilAddr, err := util.NewAddressPubKeyHash(
+			chainutil.ddr, err := chainutil.NewAddressPubKeyHash(
 				pkHash, chainParams,
 			)
 			if err != nil {
@@ -423,7 +423,7 @@ func testExternalAddresses(tc *testContext) bool {
 			err = walletdb.View(tc.db, func(tx walletdb.ReadTx) error {
 				ns := tx.ReadBucket(waddrmgrNamespaceKey)
 				var err error
-				addr, err = tc.manager.Address(ns, utilAddr)
+				addr, err = tc.manager.Address(ns, chainutil.ddr)
 				return err
 			})
 			if err != nil {
@@ -561,7 +561,7 @@ func testInternalAddresses(tc *testContext) bool {
 		chainParams := tc.manager.ChainParams()
 		for i := 0; i < len(expectedInternalAddrs); i++ {
 			pkHash := expectedInternalAddrs[i].addressHash
-			utilAddr, err := util.NewAddressPubKeyHash(
+			chainutil.ddr, err := chainutil.NewAddressPubKeyHash(
 				pkHash, chainParams,
 			)
 			if err != nil {
@@ -575,7 +575,7 @@ func testInternalAddresses(tc *testContext) bool {
 			err = walletdb.View(tc.db, func(tx walletdb.ReadTx) error {
 				ns := tx.ReadBucket(waddrmgrNamespaceKey)
 				var err error
-				addr, err = tc.manager.Address(ns, utilAddr)
+				addr, err = tc.manager.Address(ns, chainutil.ddr)
 				return err
 			})
 			if err != nil {
@@ -779,7 +779,7 @@ func testImportPrivateKey(tc *testContext) bool {
 	if tc.create {
 		for i, test := range tests {
 			test.expected.privKeyWIF = test.in
-			wif, err := util.DecodeWIF(test.in)
+			wif, err := chainutil.DecodeWIF(test.in)
 			if err != nil {
 				tc.t.Errorf("%s DecodeWIF #%d (%s): unexpected "+
 					"error: %v", prefix, i, test.name, err)
@@ -815,7 +815,7 @@ func testImportPrivateKey(tc *testContext) bool {
 
 			// Use the Address API to retrieve each of the expected
 			// new addresses and ensure they're accurate.
-			utilAddr, err := util.NewAddressPubKeyHash(
+			chainutil.ddr, err := chainutil.NewAddressPubKeyHash(
 				test.expected.addressHash, chainParams)
 			if err != nil {
 				tc.t.Errorf("%s NewAddressPubKeyHash #%d (%s): "+
@@ -830,7 +830,7 @@ func testImportPrivateKey(tc *testContext) bool {
 			err = walletdb.View(tc.db, func(tx walletdb.ReadTx) error {
 				ns := tx.ReadBucket(waddrmgrNamespaceKey)
 				var err error
-				ma, err = tc.manager.Address(ns, utilAddr)
+				ma, err = tc.manager.Address(ns, chainutil.ddr)
 				return err
 			})
 			if err != nil {
@@ -983,7 +983,7 @@ func testImportScript(tc *testContext) bool {
 
 			// Use the Address API to retrieve each of the expected
 			// new addresses and ensure they're accurate.
-			utilAddr, err := util.NewAddressScriptHash(test.in,
+			chainutil.ddr, err := chainutil.NewAddressScriptHash(test.in,
 				chainParams)
 			if err != nil {
 				tc.t.Errorf("%s NewAddressScriptHash #%d (%s): "+
@@ -998,7 +998,7 @@ func testImportScript(tc *testContext) bool {
 			err = walletdb.View(tc.db, func(tx walletdb.ReadTx) error {
 				ns := tx.ReadBucket(waddrmgrNamespaceKey)
 				var err error
-				ma, err = tc.manager.Address(ns, utilAddr)
+				ma, err = tc.manager.Address(ns, chainutil.ddr)
 				return err
 			})
 			if err != nil {
@@ -1072,13 +1072,13 @@ func testMarkUsed(tc *testContext) bool {
 	for i, test := range tests {
 		addrHash := test.in
 
-		var addr util.Address
+		var addr chainutil.Address
 		var err error
 		switch test.typ {
 		case addrPubKeyHash:
-			addr, err = util.NewAddressPubKeyHash(addrHash, chainParams)
+			addr, err = chainutil.NewAddressPubKeyHash(addrHash, chainParams)
 		case addrScriptHash:
-			addr, err = util.NewAddressScriptHashFromHash(addrHash, chainParams)
+			addr, err = chainutil.NewAddressScriptHashFromHash(addrHash, chainParams)
 		default:
 			panic("unreachable")
 		}
@@ -1434,7 +1434,7 @@ func testLookupAccount(tc *testContext) bool {
 	// Test account lookup for default account adddress
 	var expectedAccount uint32
 	for i, addr := range expectedAddrs {
-		addr, err := util.NewAddressPubKeyHash(addr.addressHash,
+		addr, err := chainutil.NewAddressPubKeyHash(addr.addressHash,
 			tc.manager.ChainParams())
 		if err != nil {
 			tc.t.Errorf("AddrAccount #%d: unexpected error: %v", i, err)
@@ -2059,7 +2059,7 @@ func TestEncryptDecrypt(t *testing.T) {
 }
 
 // TestScopedKeyManagerManagement tests that callers are able to properly
-// create, retrieve, and utilize new scoped managers outside the set of default
+// create, retrieve, and chainutil.ze new scoped managers outside the set of default
 // created scopes.
 func TestScopedKeyManagerManagement(t *testing.T) {
 	t.Parallel()
@@ -2153,7 +2153,7 @@ func TestScopedKeyManagerManagement(t *testing.T) {
 	}
 
 	// Now that the manager is open, we'll create a "test" scope that we'll
-	// be utilizing for the remainder of the test.
+	// be chainutil.zing for the remainder of the test.
 	testScope := KeyScope{
 		Purpose: 99,
 		Coin:    0,
@@ -2213,7 +2213,7 @@ func TestScopedKeyManagerManagement(t *testing.T) {
 		t.Fatalf("addr type mismatch: expected %v, got %v",
 			NestedWitnessPubKey, externalAddr[0].AddrType())
 	}
-	_, ok := externalAddr[0].Address().(*util.AddressScriptHash)
+	_, ok := externalAddr[0].Address().(*chainutil.AddressScriptHash)
 	if !ok {
 		t.Fatalf("wrong type: %T", externalAddr[0].Address())
 	}
@@ -2224,7 +2224,7 @@ func TestScopedKeyManagerManagement(t *testing.T) {
 		t.Fatalf("addr type mismatch: expected %v, got %v",
 			WitnessPubKey, internalAddr[0].AddrType())
 	}
-	_, ok = internalAddr[0].Address().(*util.AddressWitnessPubKeyHash)
+	_, ok = internalAddr[0].Address().(*chainutil.AddressWitnessPubKeyHash)
 	if !ok {
 		t.Fatalf("wrong type: %T", externalAddr[0].Address())
 	}

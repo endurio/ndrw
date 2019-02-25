@@ -11,7 +11,7 @@ import (
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
-	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrd/chainutil"
 	"github.com/endurio/ndrw/wallet/txrules"
 
 	h "github.com/endurio/ndrw/internal/helpers"
@@ -23,8 +23,8 @@ import (
 // can not be satisified, this can be signaled by returning a total amount less
 // than the target or by returning a more detailed error implementing
 // InputSourceError.
-type InputSource func(target util.Amount) (total util.Amount, inputs []*wire.TxIn,
-	inputValues []util.Amount, scripts [][]byte, err error)
+type InputSource func(target chainutil.Amount) (total chainutil.Amount, inputs []*wire.TxIn,
+	inputValues []chainutil.Amount, scripts [][]byte, err error)
 
 // InputSourceError describes the failure to provide enough input value from
 // unspent transaction outputs to meet a target amount.  A typed error is used
@@ -49,8 +49,8 @@ func (insufficientFundsError) Error() string {
 type AuthoredTx struct {
 	Tx              *wire.MsgTx
 	PrevScripts     [][]byte
-	PrevInputValues []util.Amount
-	TotalInput      util.Amount
+	PrevInputValues []chainutil.Amount
+	TotalInput      chainutil.Amount
 	ChangeIndex     int // negative if no change
 }
 
@@ -77,7 +77,7 @@ type ChangeSource func() ([]byte, error)
 // InputSourceError is returned.
 //
 // BUGS: Fee estimation may be off when redeeming non-compressed P2PKH outputs.
-func NewUnsignedTransaction(outputs []*wire.TxOut, relayFeePerKb util.Amount,
+func NewUnsignedTransaction(outputs []*wire.TxOut, relayFeePerKb chainutil.Amount,
 	fetchInputs InputSource, fetchChange ChangeSource) (*AuthoredTx, error) {
 
 	targetAmount := h.SumOutputValues(outputs)
@@ -189,7 +189,7 @@ type SecretsSource interface {
 // are passed in prevPkScripts and the slice length must match the number of
 // inputs.  Private keys and redeem scripts are looked up using a SecretsSource
 // based on the previous output script.
-func AddAllInputScripts(tx *wire.MsgTx, prevPkScripts [][]byte, inputValues []util.Amount,
+func AddAllInputScripts(tx *wire.MsgTx, prevPkScripts [][]byte, inputValues []chainutil.Amount,
 	secrets SecretsSource) error {
 
 	inputs := tx.TxIn
@@ -263,11 +263,11 @@ func spendWitnessKeyHash(txIn *wire.TxIn, pkScript []byte,
 	// the compression type of the generated key.
 	var pubKeyHash []byte
 	if compressed {
-		pubKeyHash = util.Hash160(pubKey.SerializeCompressed())
+		pubKeyHash = chainutil.Hash160(pubKey.SerializeCompressed())
 	} else {
-		pubKeyHash = util.Hash160(pubKey.SerializeUncompressed())
+		pubKeyHash = chainutil.Hash160(pubKey.SerializeUncompressed())
 	}
-	p2wkhAddr, err := util.NewAddressWitnessPubKeyHash(pubKeyHash, chainParams)
+	p2wkhAddr, err := chainutil.NewAddressWitnessPubKeyHash(pubKeyHash, chainParams)
 	if err != nil {
 		return err
 	}
@@ -315,16 +315,16 @@ func spendNestedWitnessPubKeyHash(txIn *wire.TxIn, pkScript []byte,
 
 	var pubKeyHash []byte
 	if compressed {
-		pubKeyHash = util.Hash160(pubKey.SerializeCompressed())
+		pubKeyHash = chainutil.Hash160(pubKey.SerializeCompressed())
 	} else {
-		pubKeyHash = util.Hash160(pubKey.SerializeUncompressed())
+		pubKeyHash = chainutil.Hash160(pubKey.SerializeUncompressed())
 	}
 
 	// Next, we'll generate a valid sigScript that'll allow us to spend
 	// the p2sh output. The sigScript will contain only a single push of
 	// the p2wkh witness program corresponding to the matching public key
 	// of this address.
-	p2wkhAddr, err := util.NewAddressWitnessPubKeyHash(pubKeyHash, chainParams)
+	p2wkhAddr, err := chainutil.NewAddressWitnessPubKeyHash(pubKeyHash, chainParams)
 	if err != nil {
 		return err
 	}

@@ -13,7 +13,7 @@ import (
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
 	"github.com/endurio/ndrd/wire"
-	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrd/chainutil"
 	"github.com/endurio/ndrw/walletdb"
 )
 
@@ -61,7 +61,7 @@ type indexedIncidence struct {
 type debit struct {
 	txHash chainhash.Hash
 	index  uint32
-	amount util.Amount
+	amount chainutil.Amount
 	spends indexedIncidence
 }
 
@@ -69,7 +69,7 @@ type debit struct {
 type credit struct {
 	outPoint wire.OutPoint
 	block    Block
-	amount   util.Amount
+	amount   chainutil.Amount
 	change   bool
 	spentBy  indexedIncidence // Index == ^uint32(0) if unspent
 }
@@ -124,7 +124,7 @@ func NewTxRecordFromMsgTx(msgTx *wire.MsgTx, received time.Time) (*TxRecord, err
 type Credit struct {
 	wire.OutPoint
 	BlockMeta
-	Amount       util.Amount
+	Amount       chainutil.Amount
 	PkScript     []byte
 	Received     time.Time
 	FromCoinBase bool
@@ -407,7 +407,7 @@ func (s *Store) addCredit(ns walletdb.ReadWriteBucket, rec *TxRecord, block *Blo
 		if existsRawUnspent(ns, k) != nil {
 			return false, nil
 		}
-		v := valueUnminedCredit(util.Amount(rec.MsgTx.TxOut[index].Value), change)
+		v := valueUnminedCredit(chainutil.Amount(rec.MsgTx.TxOut[index].Value), change)
 		return true, putRawUnminedCredit(ns, k, v)
 	}
 
@@ -416,7 +416,7 @@ func (s *Store) addCredit(ns walletdb.ReadWriteBucket, rec *TxRecord, block *Blo
 		return false, nil
 	}
 
-	txOutAmt := util.Amount(rec.MsgTx.TxOut[index].Value)
+	txOutAmt := chainutil.Amount(rec.MsgTx.TxOut[index].Value)
 	log.Debugf("Marking transaction %v output %d (%v) spendable",
 		rec.Hash, index, txOutAmt)
 
@@ -516,7 +516,7 @@ func (s *Store) rollback(ns walletdb.ReadWriteBucket, height int32) error {
 
 					unspentKey, credKey := existsUnspent(ns, &op)
 					if credKey != nil {
-						minedBalance -= util.Amount(output.Value)
+						minedBalance -= chainutil.Amount(output.Value)
 						err = deleteRawUnspent(ns, unspentKey)
 						if err != nil {
 							return err
@@ -569,7 +569,7 @@ func (s *Store) rollback(ns walletdb.ReadWriteBucket, height int32) error {
 				// may have already been removed from a
 				// previously removed transaction record in
 				// this rollback.
-				var amt util.Amount
+				var amt chainutil.Amount
 				amt, err = unspendRawCredit(ns, credKey)
 				if err != nil {
 					return err
@@ -628,7 +628,7 @@ func (s *Store) rollback(ns walletdb.ReadWriteBucket, height int32) error {
 
 				credKey := existsRawUnspent(ns, outPointKey)
 				if credKey != nil {
-					minedBalance -= util.Amount(output.Value)
+					minedBalance -= chainutil.Amount(output.Value)
 					err = deleteRawUnspent(ns, outPointKey)
 					if err != nil {
 						return err
@@ -734,7 +734,7 @@ func (s *Store) UnspentOutputs(ns walletdb.ReadBucket) ([]Credit, error) {
 				Block: block,
 				Time:  blockTime,
 			},
-			Amount:       util.Amount(txOut.Value),
+			Amount:       chainutil.Amount(txOut.Value),
 			PkScript:     txOut.PkScript,
 			Received:     rec.Received,
 			FromCoinBase: blockchain.IsCoinBaseTx(&rec.MsgTx),
@@ -777,7 +777,7 @@ func (s *Store) UnspentOutputs(ns walletdb.ReadBucket) ([]Credit, error) {
 			BlockMeta: BlockMeta{
 				Block: Block{Height: -1},
 			},
-			Amount:       util.Amount(txOut.Value),
+			Amount:       chainutil.Amount(txOut.Value),
 			PkScript:     txOut.PkScript,
 			Received:     rec.Received,
 			FromCoinBase: blockchain.IsCoinBaseTx(&rec.MsgTx),
@@ -803,7 +803,7 @@ func (s *Store) UnspentOutputs(ns walletdb.ReadBucket) ([]Credit, error) {
 //
 // Balance may return unexpected results if syncHeight is lower than the block
 // height of the most recent mined transaction in the store.
-func (s *Store) Balance(ns walletdb.ReadBucket, minConf int32, syncHeight int32) (util.Amount, error) {
+func (s *Store) Balance(ns walletdb.ReadBucket, minConf int32, syncHeight int32) (chainutil.Amount, error) {
 	bal, err := fetchMinedBalance(ns)
 	if err != nil {
 		return 0, err

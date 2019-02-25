@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/endurio/ndrd/util/hdkeychain"
+	"github.com/endurio/ndrd/chainutil/hdkeychain"
 	"github.com/endurio/ndrw/waddrmgr"
 )
 

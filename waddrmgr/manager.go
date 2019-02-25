@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/endurio/ndrd/chaincfg"
-	"github.com/endurio/ndrd/util"
-	"github.com/endurio/ndrd/util/hdkeychain"
+	"github.com/endurio/ndrd/chainutil"
+	"github.com/endurio/ndrd/chainutil/hdkeychain"
 	"github.com/endurio/ndrw/internal/zero"
 	"github.com/endurio/ndrw/snacl"
 	"github.com/endurio/ndrw/walletdb"
@@ -608,7 +608,7 @@ func (m *Manager) NeuterRootKey(ns walletdb.ReadWriteBucket) error {
 // pay-to-pubkey-hash addresses and the script associated with
 // pay-to-script-hash addresses.
 func (m *Manager) Address(ns walletdb.ReadBucket,
-	address util.Address) (ManagedAddress, error) {
+	address chainutil.Address) (ManagedAddress, error) {
 
 	m.mtx.RLock()
 	defer m.mtx.RUnlock()
@@ -631,7 +631,7 @@ func (m *Manager) Address(ns walletdb.ReadBucket,
 }
 
 // MarkUsed updates the used flag for the provided address.
-func (m *Manager) MarkUsed(ns walletdb.ReadWriteBucket, address util.Address) error {
+func (m *Manager) MarkUsed(ns walletdb.ReadWriteBucket, address chainutil.Address) error {
 	m.mtx.RLock()
 	defer m.mtx.RUnlock()
 
@@ -658,7 +658,7 @@ func (m *Manager) MarkUsed(ns walletdb.ReadWriteBucket, address util.Address) er
 // AddrAccount returns the account to which the given address belongs. We also
 // return the scoped manager that owns the addr+account combo.
 func (m *Manager) AddrAccount(ns walletdb.ReadBucket,
-	address util.Address) (*ScopedKeyManager, uint32, error) {
+	address chainutil.Address) (*ScopedKeyManager, uint32, error) {
 
 	m.mtx.RLock()
 	defer m.mtx.RUnlock()
@@ -708,7 +708,7 @@ func (m *Manager) ForEachActiveAccountAddress(ns walletdb.ReadBucket,
 
 // ForEachActiveAddress calls the given function with each active address
 // stored in the manager, breaking early on error.
-func (m *Manager) ForEachActiveAddress(ns walletdb.ReadBucket, fn func(addr util.Address) error) error {
+func (m *Manager) ForEachActiveAddress(ns walletdb.ReadBucket, fn func(addr chainutil.Address) error) error {
 	m.mtx.RLock()
 	defer m.mtx.RUnlock()
 

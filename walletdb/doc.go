@@ -98,6 +98,6 @@ Nested Buckets
 The CreateBucket and CreateBucketIfNotExists functions on the Bucket interface
 provide the ability to create an arbitrary number of nested buckets.  It is
 a good idea to avoid a lot of buckets with little data in them as it could lead
-to poor page utilization depending on the specific driver in use.
+to poor page chainutil.zation depending on the specific driver in use.
 */
 package walletdb

@@ -9,7 +9,7 @@ import (
 	"errors"
 
 	"github.com/endurio/ndrd/txscript"
-	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrd/chainutil"
 	"github.com/endurio/ndrw/waddrmgr"
 	"github.com/endurio/ndrw/walletdb"
 )
@@ -20,8 +20,8 @@ import (
 // otherwise an error is returned for a missing pubkey.
 //
 // This function only works with pubkeys and P2PKH addresses derived from them.
-func (w *Wallet) MakeMultiSigScript(addrs []util.Address, nRequired int) ([]byte, error) {
-	pubKeys := make([]*util.AddressPubKey, len(addrs))
+func (w *Wallet) MakeMultiSigScript(addrs []chainutil.Address, nRequired int) ([]byte, error) {
+	pubKeys := make([]*chainutil.AddressPubKey, len(addrs))
 
 	var dbtx walletdb.ReadTx
 	var addrmgrNs walletdb.ReadBucket
@@ -40,10 +40,10 @@ func (w *Wallet) MakeMultiSigScript(addrs []util.Address, nRequired int) ([]byte
 			return nil, errors.New("cannot make multisig script for " +
 				"a non-secp256k1 public key or P2PKH address")
 
-		case *util.AddressPubKey:
+		case *chainutil.AddressPubKey:
 			pubKeys[i] = addr
 
-		case *util.AddressPubKeyHash:
+		case *chainutil.AddressPubKeyHash:
 			if dbtx == nil {
 				var err error
 				dbtx, err = w.db.BeginReadTx()
@@ -59,7 +59,7 @@ func (w *Wallet) MakeMultiSigScript(addrs []util.Address, nRequired int) ([]byte
 			serializedPubKey := addrInfo.(waddrmgr.ManagedPubKeyAddress).
 				PubKey().SerializeCompressed()
 
-			pubKeyAddr, err := util.NewAddressPubKey(
+			pubKeyAddr, err := chainutil.NewAddressPubKey(
 				serializedPubKey, w.chainParams)
 			if err != nil {
 				return nil, err
@@ -72,8 +72,8 @@ func (w *Wallet) MakeMultiSigScript(addrs []util.Address, nRequired int) ([]byte
 }
 
 // ImportP2SHRedeemScript adds a P2SH redeem script to the wallet.
-func (w *Wallet) ImportP2SHRedeemScript(script []byte) (*util.AddressScriptHash, error) {
-	var p2shAddr *util.AddressScriptHash
+func (w *Wallet) ImportP2SHRedeemScript(script []byte) (*chainutil.AddressScriptHash, error) {
+	var p2shAddr *chainutil.AddressScriptHash
 	err := walletdb.Update(w.db, func(tx walletdb.ReadWriteTx) error {
 		addrmgrNs := tx.ReadWriteBucket(waddrmgrNamespaceKey)
 
@@ -100,14 +100,14 @@ func (w *Wallet) ImportP2SHRedeemScript(script []byte) (*util.AddressScriptHash,
 			if waddrmgr.IsError(err, waddrmgr.ErrDuplicateAddress) {
 				// This function will never error as it always
 				// hashes the script to the correct length.
-				p2shAddr, _ = util.NewAddressScriptHash(script,
+				p2shAddr, _ = chainutil.NewAddressScriptHash(script,
 					w.chainParams)
 				return nil
 			}
 			return err
 		}
 
-		p2shAddr = addrInfo.Address().(*util.AddressScriptHash)
+		p2shAddr = addrInfo.Address().(*chainutil.AddressScriptHash)
 		return nil
 	})
 	return p2shAddr, err

@@ -12,14 +12,14 @@ import (
 
 	"github.com/endurio/ndrd/chaincfg/chainhash"
 	"github.com/endurio/ndrd/wire"
-	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrd/chainutil"
 	"github.com/endurio/ndrw/walletdb"
 	"github.com/endurio/ndrw/wtxmgr"
 )
 
 var (
 	// random small number of satoshis used as dustThreshold
-	dustThreshold util.Amount = 1e4
+	dustThreshold chainutil.Amount = 1e4
 )
 
 func TestGetEligibleInputs(t *testing.T) {

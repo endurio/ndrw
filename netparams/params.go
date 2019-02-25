@@ -15,7 +15,7 @@ type Params struct {
 }
 
 // MainNetParams contains parameters specific running ndrw and
-// btcd on the main network (wire.MainNet).
+// ndrd on the main network (wire.MainNet).
 var MainNetParams = Params{
 	Params:        &chaincfg.MainNetParams,
 	RPCClientPort: "8334",
@@ -23,7 +23,7 @@ var MainNetParams = Params{
 }
 
 // TestNet3Params contains parameters specific running ndrw and
-// btcd on the test network (version 3) (wire.TestNet3).
+// ndrd on the test network (version 3) (wire.TestNet3).
 var TestNet3Params = Params{
 	Params:        &chaincfg.TestNet3Params,
 	RPCClientPort: "18334",

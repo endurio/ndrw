@@ -16,7 +16,7 @@ import (
 
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
-	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrd/chainutil"
 	"github.com/endurio/ndrw/waddrmgr"
 	"github.com/endurio/ndrw/walletdb"
 	"github.com/endurio/ndrw/wtxmgr"
@@ -50,8 +50,8 @@ type Ntxid string
 // OutputRequest represents one of the outputs (address/amount) requested by a
 // withdrawal, and includes information about the user's outbailment request.
 type OutputRequest struct {
-	Address  util.Address
-	Amount   util.Amount
+	Address  chainutil.Address
+	Amount   chainutil.Amount
 	PkScript []byte
 
 	// The notary server that received the outbailment request.
@@ -78,7 +78,7 @@ type WithdrawalOutput struct {
 type OutBailmentOutpoint struct {
 	ntxid  Ntxid
 	index  uint32
-	amount util.Amount
+	amount chainutil.Amount
 }
 
 // changeAwareTx is just a wrapper around wire.MsgTx that knows about its change
@@ -94,7 +94,7 @@ type changeAwareTx struct {
 type WithdrawalStatus struct {
 	nextInputAddr  WithdrawalAddress
 	nextChangeAddr ChangeAddress
-	fees           util.Amount
+	fees           chainutil.Amount
 	outputs        map[OutBailmentID]*WithdrawalOutput
 	sigs           map[Ntxid]TxSigs
 	transactions   map[Ntxid]changeAwareTx
@@ -108,7 +108,7 @@ type withdrawalInfo struct {
 	startAddress  WithdrawalAddress
 	changeStart   ChangeAddress
 	lastSeriesID  uint32
-	dustThreshold util.Amount
+	dustThreshold chainutil.Amount
 	status        WithdrawalStatus
 }
 
@@ -180,7 +180,7 @@ func (s *WithdrawalStatus) Sigs() map[Ntxid]TxSigs {
 
 // Fees returns the total amount of network fees included in all transactions
 // generated as part of a withdrawal.
-func (s *WithdrawalStatus) Fees() util.Amount {
+func (s *WithdrawalStatus) Fees() chainutil.Amount {
 	return s.fees
 }
 
@@ -245,7 +245,7 @@ func (o *WithdrawalOutput) Outpoints() []OutBailmentOutpoint {
 }
 
 // Amount returns the amount (in satoshis) in this OutBailmentOutpoint.
-func (o OutBailmentOutpoint) Amount() util.Amount {
+func (o OutBailmentOutpoint) Amount() chainutil.Amount {
 	return o.amount
 }
 
@@ -273,7 +273,7 @@ type withdrawalTxOut struct {
 	// withdrawalTxOut. The original OutputRequest, if needed, can be obtained
 	// from WithdrawalStatus.outputs.
 	request OutputRequest
-	amount  util.Amount
+	amount  chainutil.Amount
 }
 
 // String makes withdrawalTxOut satisfy the Stringer interface.
@@ -289,7 +289,7 @@ func (o *withdrawalTxOut) pkScript() []byte {
 type withdrawalTx struct {
 	inputs  []credit
 	outputs []*withdrawalTxOut
-	fee     util.Amount
+	fee     chainutil.Amount
 
 	// changeOutput holds information about the change for this transaction.
 	changeOutput *wire.TxOut
@@ -300,7 +300,7 @@ type withdrawalTx struct {
 	calculateSize func() int
 	// calculateFee calculates the expected network fees for this tx. We use a
 	// struct field instead of a method so that it can be replaced in tests.
-	calculateFee func() util.Amount
+	calculateFee func() chainutil.Amount
 }
 
 // newWithdrawalTx creates a new withdrawalTx and calls setOptions()
@@ -308,8 +308,8 @@ type withdrawalTx struct {
 func newWithdrawalTx(setOptions func(tx *withdrawalTx)) *withdrawalTx {
 	tx := &withdrawalTx{}
 	tx.calculateSize = func() int { return calculateTxSize(tx) }
-	tx.calculateFee = func() util.Amount {
-		return util.Amount(1+tx.calculateSize()/1000) * feeIncrement
+	tx.calculateFee = func() chainutil.Amount {
+		return chainutil.Amount(1+tx.calculateSize()/1000) * feeIncrement
 	}
 	setOptions(tx)
 	return tx
@@ -335,7 +335,7 @@ func (tx *withdrawalTx) isTooBig() bool {
 }
 
 // inputTotal returns the sum amount of all inputs in this tx.
-func (tx *withdrawalTx) inputTotal() (total util.Amount) {
+func (tx *withdrawalTx) inputTotal() (total chainutil.Amount) {
 	for _, input := range tx.inputs {
 		total += input.Amount
 	}
@@ -344,7 +344,7 @@ func (tx *withdrawalTx) inputTotal() (total util.Amount) {
 
 // outputTotal returns the sum amount of all outputs in this tx. It does not
 // include the amount for the change output, in case the tx has one.
-func (tx *withdrawalTx) outputTotal() (total util.Amount) {
+func (tx *withdrawalTx) outputTotal() (total chainutil.Amount) {
 	for _, output := range tx.outputs {
 		total += output.amount
 	}
@@ -479,7 +479,7 @@ func newWithdrawal(roundID uint32, requests []OutputRequest, inputs []credit,
 // This method must be called with the address manager unlocked.
 func (p *Pool) StartWithdrawal(ns walletdb.ReadWriteBucket, addrmgrNs walletdb.ReadBucket, roundID uint32, requests []OutputRequest,
 	startAddress WithdrawalAddress, lastSeriesID uint32, changeStart ChangeAddress,
-	txStore *wtxmgr.Store, txmgrNs walletdb.ReadBucket, chainHeight int32, dustThreshold util.Amount) (
+	txStore *wtxmgr.Store, txmgrNs walletdb.ReadBucket, chainHeight int32, dustThreshold chainutil.Amount) (
 	*WithdrawalStatus, error) {
 
 	status, err := getWithdrawalStatus(p, ns, addrmgrNs, roundID, requests, startAddress, lastSeriesID,
@@ -642,7 +642,7 @@ func (w *withdrawal) finalizeCurrentTx() error {
 		// original one.
 		outputStatus := w.status.outputs[txOut.request.outBailmentID()]
 		origRequest := outputStatus.request
-		amtFulfilled := util.Amount(0)
+		amtFulfilled := chainutil.Amount(0)
 		for _, outpoint := range outputStatus.outpoints {
 			amtFulfilled += outpoint.amount
 		}
@@ -663,11 +663,11 @@ func (w *withdrawal) finalizeCurrentTx() error {
 // fulfill them all. For every dropped output request we update its entry in
 // w.status.outputs with the status string set to statusPartial.
 func (w *withdrawal) maybeDropRequests() {
-	inputAmount := util.Amount(0)
+	inputAmount := chainutil.Amount(0)
 	for _, input := range w.eligibleInputs {
 		inputAmount += input.Amount
 	}
-	outputAmount := util.Amount(0)
+	outputAmount := chainutil.Amount(0)
 	for _, request := range w.pendingRequests {
 		outputAmount += request.Amount
 	}
@@ -778,7 +778,7 @@ func (s *WithdrawalStatus) updateStatusFor(tx *withdrawalTx) {
 // withdrawalInfo. For the requests slice, the order of the items does not
 // matter.
 func (wi *withdrawalInfo) match(requests []OutputRequest, startAddress WithdrawalAddress,
-	lastSeriesID uint32, changeStart ChangeAddress, dustThreshold util.Amount) bool {
+	lastSeriesID uint32, changeStart ChangeAddress, dustThreshold chainutil.Amount) bool {
 	// Use reflect.DeepEqual to compare changeStart and startAddress as they're
 	// structs that contain pointers and we want to compare their content and
 	// not their address.
@@ -818,7 +818,7 @@ func (wi *withdrawalInfo) match(requests []OutputRequest, startAddress Withdrawa
 // address manager unlocked.
 func getWithdrawalStatus(p *Pool, ns, addrmgrNs walletdb.ReadBucket, roundID uint32, requests []OutputRequest,
 	startAddress WithdrawalAddress, lastSeriesID uint32, changeStart ChangeAddress,
-	dustThreshold util.Amount) (*WithdrawalStatus, error) {
+	dustThreshold chainutil.Amount) (*WithdrawalStatus, error) {
 
 	serialized := getWithdrawal(ns, p.ID, roundID)
 	if bytes.Equal(serialized, []byte{}) {
@@ -917,7 +917,7 @@ func SignTx(msgtx *wire.MsgTx, sigs TxSigs, mgr *waddrmgr.Manager, addrmgrNs wal
 
 // getRedeemScript returns the redeem script for the given P2SH address. It must
 // be called with the manager unlocked.
-func getRedeemScript(mgr *waddrmgr.Manager, addrmgrNs walletdb.ReadBucket, addr *util.AddressScriptHash) ([]byte, error) {
+func getRedeemScript(mgr *waddrmgr.Manager, addrmgrNs walletdb.ReadBucket, addr *chainutil.AddressScriptHash) ([]byte, error) {
 	address, err := mgr.Address(addrmgrNs, addr)
 	if err != nil {
 		return nil, err
@@ -940,7 +940,7 @@ func signMultiSigUTXO(mgr *waddrmgr.Manager, addrmgrNs walletdb.ReadBucket, tx *
 	if class != txscript.ScriptHashTy {
 		return newError(ErrTxSigning, fmt.Sprintf("pkScript is not P2SH: %s", class), nil)
 	}
-	redeemScript, err := getRedeemScript(mgr, addrmgrNs, addresses[0].(*util.AddressScriptHash))
+	redeemScript, err := getRedeemScript(mgr, addrmgrNs, addresses[0].(*chainutil.AddressScriptHash))
 	if err != nil {
 		return newError(ErrTxSigning, "unable to retrieve redeem script", err)
 	}

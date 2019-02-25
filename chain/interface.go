@@ -5,7 +5,7 @@ import (
 
 	"github.com/endurio/ndrd/chaincfg/chainhash"
 	"github.com/endurio/ndrd/wire"
-	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrd/chainutil"
 	"github.com/endurio/ndrw/waddrmgr"
 	"github.com/endurio/ndrw/wtxmgr"
 )
@@ -15,13 +15,13 @@ import (
 func BackEnds() []string {
 	return []string{
 		"bitcoind",
-		"btcd",
+		"ndrd",
 		"neutrino",
 	}
 }
 
 // Interface allows more than one backing blockchain source, such as a
-// btcd RPC chain server, or an SPV library, as long as we write a driver for
+// ndrd RPC chain server, or an SPV library, as long as we write a driver for
 // it.
 type Interface interface {
 	Start() error
@@ -34,8 +34,8 @@ type Interface interface {
 	FilterBlocks(*FilterBlocksRequest) (*FilterBlocksResponse, error)
 	BlockStamp() (*waddrmgr.BlockStamp, error)
 	SendRawTransaction(*wire.MsgTx, bool) (*chainhash.Hash, error)
-	Rescan(*chainhash.Hash, []util.Address, map[wire.OutPoint]util.Address) error
-	NotifyReceived([]util.Address) error
+	Rescan(*chainhash.Hash, []chainutil.Address, map[wire.OutPoint]chainutil.Address) error
+	NotifyReceived([]chainutil.Address) error
 	NotifyBlocks() error
 	Notifications() <-chan interface{}
 	BackEnd() string
@@ -68,9 +68,9 @@ type (
 	// is also included to monitor for spends.
 	FilterBlocksRequest struct {
 		Blocks           []wtxmgr.BlockMeta
-		ExternalAddrs    map[waddrmgr.ScopedIndex]util.Address
-		InternalAddrs    map[waddrmgr.ScopedIndex]util.Address
-		WatchedOutPoints map[wire.OutPoint]util.Address
+		ExternalAddrs    map[waddrmgr.ScopedIndex]chainutil.Address
+		InternalAddrs    map[waddrmgr.ScopedIndex]chainutil.Address
+		WatchedOutPoints map[wire.OutPoint]chainutil.Address
 	}
 
 	// FilterBlocksResponse reports the set of all internal and external
@@ -85,7 +85,7 @@ type (
 		BlockMeta          wtxmgr.BlockMeta
 		FoundExternalAddrs map[waddrmgr.KeyScope]map[uint32]struct{}
 		FoundInternalAddrs map[waddrmgr.KeyScope]map[uint32]struct{}
-		FoundOutPoints     map[wire.OutPoint]util.Address
+		FoundOutPoints     map[wire.OutPoint]chainutil.Address
 		RelevantTxns       []*wire.MsgTx
 	}
 

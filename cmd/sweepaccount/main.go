@@ -12,12 +12,12 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
-	"github.com/endurio/ndrd/btcjson"
+	"github.com/endurio/ndrd/chainjson"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
 	"github.com/endurio/ndrd/rpcclient"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
-	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrd/chainutil"
 	"github.com/endurio/ndrw/internal/cfgutil"
 	"github.com/endurio/ndrw/netparams"
 	"github.com/endurio/ndrw/wallet/txauthor"
@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	walletDataDirectory = util.AppDataDir("ndrw", false)
+	walletDataDirectory = chainutil.AppDataDir("ndrw", false)
 	newlineBytes        = []byte{'\n'}
 )
 
@@ -138,15 +138,15 @@ func (noInputValue) Error() string { return "no input value" }
 // output is consumed.  The InputSource does not return any previous output
 // scripts as they are not needed for creating the unsinged transaction and are
 // looked up again by the wallet during the call to signrawtransaction.
-func makeInputSource(outputs []btcjson.ListUnspentResult) txauthor.InputSource {
+func makeInputSource(outputs []chainjson.ListUnspentResult) txauthor.InputSource {
 	var (
-		totalInputValue util.Amount
+		totalInputValue chainutil.Amount
 		inputs          = make([]*wire.TxIn, 0, len(outputs))
-		inputValues     = make([]util.Amount, 0, len(outputs))
+		inputValues     = make([]chainutil.Amount, 0, len(outputs))
 		sourceErr       error
 	)
 	for _, output := range outputs {
-		outputAmount, err := util.NewAmount(output.Amount)
+		outputAmount, err := chainutil.NewAmount(output.Amount)
 		if err != nil {
 			sourceErr = fmt.Errorf(
 				"invalid amount `%v` in listunspent result",
@@ -180,7 +180,7 @@ func makeInputSource(outputs []btcjson.ListUnspentResult) txauthor.InputSource {
 		sourceErr = noInputValue{}
 	}
 
-	return func(util.Amount) (util.Amount, []*wire.TxIn, []util.Amount, [][]byte, error) {
+	return func(chainutil.Amount) (chainutil.Amount, []*wire.TxIn, []chainutil.Amount, [][]byte, error) {
 		return totalInputValue, inputs, inputValues, nil, sourceErr
 	}
 }
@@ -236,7 +236,7 @@ func sweep() error {
 	if err != nil {
 		return errContext(err, "failed to fetch unspent outputs")
 	}
-	sourceOutputs := make(map[string][]btcjson.ListUnspentResult)
+	sourceOutputs := make(map[string][]chainjson.ListUnspentResult)
 	for _, unspentOutput := range unspentOutputs {
 		if !unspentOutput.Spendable {
 			continue
@@ -259,7 +259,7 @@ func sweep() error {
 		}
 	}
 
-	var totalSwept util.Amount
+	var totalSwept chainutil.Amount
 	var numErrors int
 	var reportError = func(format string, args ...interface{}) {
 		fmt.Fprintf(os.Stderr, format, args...)
@@ -302,7 +302,7 @@ func sweep() error {
 			continue
 		}
 
-		outputAmount := util.Amount(tx.Tx.TxOut[0].Value)
+		outputAmount := chainutil.Amount(tx.Tx.TxOut[0].Value)
 		fmt.Printf("Swept %v to destination account with transaction %v\n",
 			outputAmount, txHash)
 		totalSwept += outputAmount
@@ -332,11 +332,11 @@ func promptSecret(what string) (string, error) {
 	return string(input), nil
 }
 
-func saneOutputValue(amount util.Amount) bool {
-	return amount >= 0 && amount <= util.MaxSatoshi
+func saneOutputValue(amount chainutil.Amount) bool {
+	return amount >= 0 && amount <= chainutil.MaxSatoshi
 }
 
-func parseOutPoint(input *btcjson.ListUnspentResult) (wire.OutPoint, error) {
+func parseOutPoint(input *chainjson.ListUnspentResult) (wire.OutPoint, error) {
 	txHash, err := chainhash.NewHashFromStr(input.TxID)
 	if err != nil {
 		return wire.OutPoint{}, err

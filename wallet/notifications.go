@@ -11,7 +11,7 @@ import (
 	"github.com/endurio/ndrd/chaincfg/chainhash"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
-	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrd/chainutil"
 	"github.com/endurio/ndrw/waddrmgr"
 	"github.com/endurio/ndrw/walletdb"
 	"github.com/endurio/ndrw/wtxmgr"
@@ -106,13 +106,13 @@ func makeTxSummary(dbtx walletdb.ReadTx, w *Wallet, details *wtxmgr.TxDetails) T
 		}
 		serializedTx = buf.Bytes()
 	}
-	var fee util.Amount
+	var fee chainutil.Amount
 	if len(details.Debits) == len(details.MsgTx.TxIn) {
 		for _, deb := range details.Debits {
 			fee += deb.Amount
 		}
 		for _, txOut := range details.MsgTx.TxOut {
-			fee -= util.Amount(txOut.Value)
+			fee -= chainutil.Amount(txOut.Value)
 		}
 	}
 	var inputs []TransactionSummaryInput
@@ -151,7 +151,7 @@ func makeTxSummary(dbtx walletdb.ReadTx, w *Wallet, details *wtxmgr.TxDetails) T
 	}
 }
 
-func totalBalances(dbtx walletdb.ReadTx, w *Wallet, m map[uint32]util.Amount) error {
+func totalBalances(dbtx walletdb.ReadTx, w *Wallet, m map[uint32]chainutil.Amount) error {
 	addrmgrNs := dbtx.ReadBucket(waddrmgrNamespaceKey)
 	unspent, err := w.TxStore.UnspentOutputs(dbtx.ReadBucket(wtxmgrNamespaceKey))
 	if err != nil {
@@ -175,7 +175,7 @@ func totalBalances(dbtx walletdb.ReadTx, w *Wallet, m map[uint32]util.Amount) er
 	return nil
 }
 
-func flattenBalanceMap(m map[uint32]util.Amount) []AccountBalance {
+func flattenBalanceMap(m map[uint32]chainutil.Amount) []AccountBalance {
 	s := make([]AccountBalance, 0, len(m))
 	for k, v := range m {
 		s = append(s, AccountBalance{Account: k, TotalBalance: v})
@@ -183,7 +183,7 @@ func flattenBalanceMap(m map[uint32]util.Amount) []AccountBalance {
 	return s
 }
 
-func relevantAccounts(w *Wallet, m map[uint32]util.Amount, txs []TransactionSummary) {
+func relevantAccounts(w *Wallet, m map[uint32]chainutil.Amount, txs []TransactionSummary) {
 	for _, tx := range txs {
 		for _, d := range tx.MyInputs {
 			m[d.PreviousAccount] = 0
@@ -215,7 +215,7 @@ func (s *NotificationServer) notifyUnminedTransaction(dbtx walletdb.ReadTx, deta
 		log.Errorf("Cannot fetch unmined transaction hashes: %v", err)
 		return
 	}
-	bals := make(map[uint32]util.Amount)
+	bals := make(map[uint32]chainutil.Amount)
 	relevantAccounts(s.wallet, bals, unminedTxs)
 	err = totalBalances(dbtx, s.wallet, bals)
 	if err != nil {
@@ -304,7 +304,7 @@ func (s *NotificationServer) notifyAttachedBlock(dbtx walletdb.ReadTx, block *wt
 	}
 	s.currentTxNtfn.UnminedTransactionHashes = unminedHashes
 
-	bals := make(map[uint32]util.Amount)
+	bals := make(map[uint32]chainutil.Amount)
 	for _, b := range s.currentTxNtfn.AttachedBlocks {
 		relevantAccounts(s.wallet, bals, b.Transactions)
 	}
@@ -363,7 +363,7 @@ type TransactionSummary struct {
 	Transaction []byte
 	MyInputs    []TransactionSummaryInput
 	MyOutputs   []TransactionSummaryOutput
-	Fee         util.Amount
+	Fee         chainutil.Amount
 	Timestamp   int64
 }
 
@@ -374,7 +374,7 @@ type TransactionSummary struct {
 type TransactionSummaryInput struct {
 	Index           uint32
 	PreviousAccount uint32
-	PreviousAmount  util.Amount
+	PreviousAmount  chainutil.Amount
 }
 
 // TransactionSummaryOutput describes wallet properties of a transaction output
@@ -392,7 +392,7 @@ type TransactionSummaryOutput struct {
 // so they are not included.
 type AccountBalance struct {
 	Account      uint32
-	TotalBalance util.Amount
+	TotalBalance chainutil.Amount
 }
 
 // TransactionNotificationsClient receives TransactionNotifications from the

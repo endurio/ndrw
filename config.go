@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/endurio/ndrd/util"
+	"github.com/endurio/ndrd/chainutil"
 	"github.com/endurio/ndrw/internal/cfgutil"
 	"github.com/endurio/ndrw/internal/legacy/keystore"
 	"github.com/endurio/ndrw/netparams"
@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	defaultCAFilename       = "btcd.cert"
+	defaultCAFilename       = "ndrd.cert"
 	defaultConfigFilename   = "ndrw.conf"
 	defaultLogLevel         = "info"
 	defaultLogDirname       = "logs"
@@ -37,8 +37,8 @@ const (
 )
 
 var (
-	btcdDefaultCAFile  = filepath.Join(util.AppDataDir("btcd", false), "rpc.cert")
-	defaultAppDataDir  = util.AppDataDir("ndrw", false)
+	btcdDefaultCAFile  = filepath.Join(chainutil.AppDataDir("ndrd", false), "rpc.cert")
+	defaultAppDataDir  = chainutil.AppDataDir("ndrw", false)
 	defaultConfigFile  = filepath.Join(defaultAppDataDir, defaultConfigFilename)
 	defaultRPCKeyFile  = filepath.Join(defaultAppDataDir, "rpc.key")
 	defaultRPCCertFile = filepath.Join(defaultAppDataDir, "rpc.cert")
@@ -63,11 +63,11 @@ type config struct {
 	WalletPass string `long:"walletpass" default-mask:"-" description:"The public wallet password -- Only required if the wallet was created with one"`
 
 	// RPC client options
-	RPCConnect       string                  `short:"c" long:"rpcconnect" description:"Hostname/IP and port of btcd RPC server to connect to (default localhost:8334, testnet: localhost:18334, simnet: localhost:18556)"`
-	CAFile           *cfgutil.ExplicitString `long:"cafile" description:"File containing root certificates to authenticate a TLS connections with btcd"`
+	RPCConnect       string                  `short:"c" long:"rpcconnect" description:"Hostname/IP and port of ndrd RPC server to connect to (default localhost:8334, testnet: localhost:18334, simnet: localhost:18556)"`
+	CAFile           *cfgutil.ExplicitString `long:"cafile" description:"File containing root certificates to authenticate a TLS connections with ndrd"`
 	DisableClientTLS bool                    `long:"noclienttls" description:"Disable TLS for the RPC client -- NOTE: This is only allowed if the RPC client is connecting to localhost"`
-	BtcdUsername     string                  `long:"btcdusername" description:"Username for btcd authentication"`
-	BtcdPassword     string                  `long:"btcdpassword" default-mask:"-" description:"Password for btcd authentication"`
+	BtcdUsername     string                  `long:"btcdusername" description:"Username for ndrd authentication"`
+	BtcdPassword     string                  `long:"btcdpassword" default-mask:"-" description:"Password for ndrd authentication"`
 	Proxy            string                  `long:"proxy" description:"Connect via SOCKS5 proxy (eg. 127.0.0.1:9050)"`
 	ProxyUser        string                  `long:"proxyuser" description:"Username for proxy server"`
 	ProxyPass        string                  `long:"proxypass" default-mask:"-" description:"Password for proxy server"`
@@ -95,8 +95,8 @@ type config struct {
 	LegacyRPCListeners     []string                `long:"rpclisten" description:"Listen for legacy RPC connections on this interface/port (default port: 8332, testnet: 18332, simnet: 18554)"`
 	LegacyRPCMaxClients    int64                   `long:"rpcmaxclients" description:"Max number of legacy RPC clients for standard connections"`
 	LegacyRPCMaxWebsockets int64                   `long:"rpcmaxwebsockets" description:"Max number of legacy RPC websocket connections"`
-	Username               string                  `short:"u" long:"username" description:"Username for legacy RPC and btcd authentication (if btcdusername is unset)"`
-	Password               string                  `short:"P" long:"password" default-mask:"-" description:"Password for legacy RPC and btcd authentication (if btcdpassword is unset)"`
+	Username               string                  `short:"u" long:"username" description:"Username for legacy RPC and ndrd authentication (if btcdusername is unset)"`
+	Password               string                  `short:"P" long:"password" default-mask:"-" description:"Password for legacy RPC and ndrd authentication (if btcdpassword is unset)"`
 
 	// EXPERIMENTAL RPC server options
 	//
@@ -534,12 +534,12 @@ func loadConfig() (*config, []string, error) {
 				return nil, nil, err
 			}
 		} else {
-			// If CAFile is unset, choose either the copy or local btcd cert.
+			// If CAFile is unset, choose either the copy or local ndrd cert.
 			if !cfg.CAFile.ExplicitlySet() {
 				cfg.CAFile.Value = filepath.Join(cfg.AppDataDir.Value, defaultCAFilename)
 
 				// If the CA copy does not exist, check if we're connecting to
-				// a local btcd and switch to its RPC cert if it exists.
+				// a local ndrd and switch to its RPC cert if it exists.
 				certExists, err := cfgutil.FileExists(cfg.CAFile.Value)
 				if err != nil {
 					fmt.Fprintln(os.Stderr, err)
@@ -646,10 +646,10 @@ func loadConfig() (*config, []string, error) {
 	cfg.RPCCert.Value = cleanAndExpandPath(cfg.RPCCert.Value)
 	cfg.RPCKey.Value = cleanAndExpandPath(cfg.RPCKey.Value)
 
-	// If the btcd username or password are unset, use the same auth as for
-	// the client.  The two settings were previously shared for btcd and
+	// If the ndrd username or password are unset, use the same auth as for
+	// the client.  The two settings were previously shared for ndrd and
 	// client auth, so this avoids breaking backwards compatibility while
-	// allowing users to use different auth settings for btcd and wallet.
+	// allowing users to use different auth settings for ndrd and wallet.
 	if cfg.BtcdUsername == "" {
 		cfg.BtcdUsername = cfg.Username
 	}
