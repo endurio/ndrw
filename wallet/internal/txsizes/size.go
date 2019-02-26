@@ -150,6 +150,10 @@ func EstimateVirtualSize(numP2PKHIns, numP2WPKHIns, numNestedP2WPKHIns int,
 	if addChangeOutput {
 		// We are always using P2WPKH as change output.
 		changeSize = P2WPKHOutputSize
+		if outputCount == 0 || txOuts[0].TokenID() == wire.NDR {
+			// when no txOut is passed in, assume that it's NDR for extra 1 byte size
+			changeSize++
+		}
 		outputCount++
 	}
 

@@ -696,7 +696,7 @@ func (s *Store) rollback(ns walletdb.ReadWriteBucket, height int32) error {
 
 // UnspentOutputs returns all unspent received transaction outputs.
 // The order is undefined.
-func (s *Store) UnspentOutputs(ns walletdb.ReadBucket) ([]Credit, error) {
+func (s *Store) UnspentOutputs(ns walletdb.ReadBucket, token *wire.TokenIdentity) ([]Credit, error) {
 	var unspent []Credit
 
 	var op wire.OutPoint
@@ -728,6 +728,12 @@ func (s *Store) UnspentOutputs(ns walletdb.ReadBucket) ([]Credit, error) {
 			return err
 		}
 		txOut := rec.MsgTx.TxOut[op.Index]
+
+		if token != nil && *token != txOut.TokenID() {
+			// skip unwanted token output
+			return nil
+		}
+
 		cred := Credit{
 			OutPoint: op,
 			BlockMeta: BlockMeta{
@@ -772,6 +778,12 @@ func (s *Store) UnspentOutputs(ns walletdb.ReadBucket) ([]Credit, error) {
 		}
 
 		txOut := rec.MsgTx.TxOut[op.Index]
+
+		if token != nil && *token != txOut.TokenID() {
+			// skip unwanted token output
+			return nil
+		}
+
 		cred := Credit{
 			OutPoint: op,
 			BlockMeta: BlockMeta{

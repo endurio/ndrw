@@ -10,27 +10,28 @@ import (
 	"sort"
 
 	"github.com/endurio/ndrd/chainec"
+	"github.com/endurio/ndrd/chainjson"
+	"github.com/endurio/ndrd/chainutil"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
-	"github.com/endurio/ndrd/chainutil"
+	"github.com/endurio/ndrw/internal/helpers"
 	"github.com/endurio/ndrw/waddrmgr"
 	"github.com/endurio/ndrw/wallet/txauthor"
 	"github.com/endurio/ndrw/walletdb"
 	"github.com/endurio/ndrw/wtxmgr"
 )
 
-// byAmount defines the methods needed to satisify sort.Interface to
-// sort credits by their output amount.
-type byAmount []wtxmgr.Credit
+// byHeight defines the methods needed to satisify sort.Interface to
+// sort credits by their block height.
+type byHeight []wtxmgr.Credit
 
-func (s byAmount) Len() int           { return len(s) }
-func (s byAmount) Less(i, j int) bool { return s[i].Amount < s[j].Amount }
-func (s byAmount) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s byHeight) Len() int           { return len(s) }
+func (s byHeight) Less(i, j int) bool { return s[i].Height < s[j].Height }
+func (s byHeight) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 func makeInputSource(eligible []wtxmgr.Credit) txauthor.InputSource {
-	// Pick largest outputs first.  This is only done for compatibility with
-	// previous tx creation code, not because it's a good idea.
-	sort.Sort(sort.Reverse(byAmount(eligible)))
+	// Pick oldest outputs first.
+	sort.Sort(byHeight(eligible))
 
 	// Current inputs and their total value.  These are closed over by the
 	// returned input source and reused across multiple calls.
@@ -104,6 +105,21 @@ func (s secretSource) GetScript(addr chainutil.Address) ([]byte, error) {
 func (w *Wallet) txToOutputs(outputs []*wire.TxOut, account uint32,
 	minconf int32, feeSatPerKb chainutil.Amount) (tx *txauthor.AuthoredTx, err error) {
 
+	// sign of an order
+	var orderAmount int64
+	if outputs[len(outputs)-1].PkScript == nil {
+		orderAmount = outputs[len(outputs)-1].Value
+		outputs = outputs[:len(outputs)-1]
+	}
+
+	token, ok := helpers.GetSingleToken(outputs)
+	if !ok {
+		return nil, &chainjson.RPCError{
+			Code:    chainjson.ErrRPCUnimplemented,
+			Message: "Multiple tokens transaction are not yet supported",
+		}
+	}
+
 	chainClient, err := w.requireChainClient()
 	if err != nil {
 		return nil, err
@@ -118,7 +134,7 @@ func (w *Wallet) txToOutputs(outputs []*wire.TxOut, account uint32,
 			return err
 		}
 
-		eligible, err := w.findEligibleOutputs(dbtx, account, minconf, bs)
+		eligible, err := w.findEligibleOutputs(dbtx, account, token, minconf, bs)
 		if err != nil {
 			return err
 		}
@@ -138,12 +154,27 @@ func (w *Wallet) txToOutputs(outputs []*wire.TxOut, account uint32,
 			if err != nil {
 				return nil, err
 			}
+
+			if chainClient := w.ChainClient(); chainClient != nil {
+				// Notify the rpc server about the newly created address.
+				err = chainClient.NotifyReceived([]chainutil.Address{changeAddr})
+				if err != nil {
+					return nil, err
+				}
+			}
+
 			return txscript.PayToAddrScript(changeAddr)
 		}
 		tx, err = txauthor.NewUnsignedTransaction(outputs, feeSatPerKb,
 			inputSource, changeSource)
 		if err != nil {
 			return err
+		}
+
+		// swap back the order receiving output
+		if orderAmount > 0 {
+			tx.Tx.TxOut[0].Value = orderAmount
+			tx.Tx.TxOut[0].SwapToken()
 		}
 
 		// Randomize change position, if change exists, before signing.
@@ -188,11 +219,11 @@ func (w *Wallet) txToOutputs(outputs []*wire.TxOut, account uint32,
 	return tx, nil
 }
 
-func (w *Wallet) findEligibleOutputs(dbtx walletdb.ReadTx, account uint32, minconf int32, bs *waddrmgr.BlockStamp) ([]wtxmgr.Credit, error) {
+func (w *Wallet) findEligibleOutputs(dbtx walletdb.ReadTx, account uint32, token wire.TokenIdentity, minconf int32, bs *waddrmgr.BlockStamp) ([]wtxmgr.Credit, error) {
 	addrmgrNs := dbtx.ReadBucket(waddrmgrNamespaceKey)
 	txmgrNs := dbtx.ReadBucket(wtxmgrNamespaceKey)
 
-	unspent, err := w.TxStore.UnspentOutputs(txmgrNs)
+	unspent, err := w.TxStore.UnspentOutputs(txmgrNs, &token)
 	if err != nil {
 		return nil, err
 	}

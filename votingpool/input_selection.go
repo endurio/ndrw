@@ -22,8 +22,8 @@ import (
 	"sort"
 
 	"github.com/endurio/ndrd/chaincfg"
-	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/chainutil"
+	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrw/walletdb"
 	"github.com/endurio/ndrw/wtxmgr"
 )
@@ -107,7 +107,7 @@ func (p *Pool) getEligibleInputs(ns, addrmgrNs walletdb.ReadBucket, store *wtxmg
 		str := fmt.Sprintf("lastSeriesID (%d) does not exist", lastSeriesID)
 		return nil, newError(ErrSeriesNotExists, str, nil)
 	}
-	unspents, err := store.UnspentOutputs(txmgrNs)
+	unspents, err := store.UnspentOutputs(txmgrNs, nil)
 	if err != nil {
 		return nil, newError(ErrInputSelection, "failed to get unspent outputs", err)
 	}

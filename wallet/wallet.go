@@ -313,7 +313,7 @@ func (w *Wallet) activeData(dbtx walletdb.ReadTx) ([]chainutil.Address, []wtxmgr
 	if err != nil {
 		return nil, nil, err
 	}
-	unspent, err := w.TxStore.UnspentOutputs(txmgrNs)
+	unspent, err := w.TxStore.UnspentOutputs(txmgrNs, nil)
 	return addrs, unspent, err
 }
 
@@ -641,7 +641,7 @@ func (w *Wallet) recovery(startHeight int32) error {
 		return err
 	}
 	txMgrNS := tx.ReadBucket(wtxmgrNamespaceKey)
-	credits, err := w.TxStore.UnspentOutputs(txMgrNS)
+	credits, err := w.TxStore.UnspentOutputs(txMgrNS, nil)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -1498,7 +1498,7 @@ type Balances struct {
 // This function is much slower than it needs to be since transactions outputs
 // are not indexed by the accounts they credit to, and all unspent transaction
 // outputs must be iterated.
-func (w *Wallet) CalculateAccountBalances(account uint32, confirms int32) (Balances, error) {
+func (w *Wallet) CalculateAccountBalances(account uint32, confirms int32, token wire.TokenIdentity) (Balances, error) {
 	var bals Balances
 	err := walletdb.View(w.db, func(tx walletdb.ReadTx) error {
 		addrmgrNs := tx.ReadBucket(waddrmgrNamespaceKey)
@@ -1508,7 +1508,7 @@ func (w *Wallet) CalculateAccountBalances(account uint32, confirms int32) (Balan
 		// the number of tx confirmations.
 		syncBlock := w.Manager.SyncedTo()
 
-		unspent, err := w.TxStore.UnspentOutputs(txmgrNs)
+		unspent, err := w.TxStore.UnspentOutputs(txmgrNs, &token)
 		if err != nil {
 			return err
 		}
@@ -2270,6 +2270,25 @@ func (w *Wallet) GetTransactions(startBlock, endBlock *BlockIdentifier, cancel <
 	return &res, err
 }
 
+// AccountNumbers returns all account numbers control by this wallet
+func (w *Wallet) AccountNumbers(scope waddrmgr.KeyScope) (accounts []uint32, err error) {
+	manager, err := w.Manager.FetchScopedKeyManager(scope)
+	if err != nil {
+		return nil, err
+	}
+
+	err = walletdb.View(w.db, func(tx walletdb.ReadTx) error {
+		addrmgrNs := tx.ReadBucket(waddrmgrNamespaceKey)
+		err = manager.ForEachAccount(addrmgrNs, func(acct uint32) error {
+			accounts = append(accounts, acct)
+			return nil
+		})
+		return err
+	})
+
+	return accounts, err
+}
+
 // AccountResult is a single account result for the AccountsResult type.
 type AccountResult struct {
 	waddrmgr.AccountProperties
@@ -2308,7 +2327,7 @@ func (w *Wallet) Accounts(scope waddrmgr.KeyScope) (*AccountsResult, error) {
 		syncBlock := w.Manager.SyncedTo()
 		syncBlockHash = &syncBlock.Hash
 		syncBlockHeight = syncBlock.Height
-		unspent, err := w.TxStore.UnspentOutputs(txmgrNs)
+		unspent, err := w.TxStore.UnspentOutputs(txmgrNs, nil)
 		if err != nil {
 			return err
 		}
@@ -2399,7 +2418,7 @@ func (w *Wallet) AccountBalances(scope waddrmgr.KeyScope,
 		// Fetch all unspent outputs, and iterate over them tallying each
 		// account's balance where the output script pays to an account address
 		// and the required number of confirmations is met.
-		unspentOutputs, err := w.TxStore.UnspentOutputs(txmgrNs)
+		unspentOutputs, err := w.TxStore.UnspentOutputs(txmgrNs, nil)
 		if err != nil {
 			return err
 		}
@@ -2478,7 +2497,7 @@ func (s creditSlice) Swap(i, j int) {
 // contained within it will be considered.  If we know nothing about a
 // transaction an empty array will be returned.
 func (w *Wallet) ListUnspent(minconf, maxconf int32,
-	addresses map[string]struct{}) ([]*chainjson.ListUnspentResult, error) {
+	addresses map[string]struct{}, token *wire.TokenIdentity) ([]*chainjson.ListUnspentResult, error) {
 
 	var results []*chainjson.ListUnspentResult
 	err := walletdb.View(w.db, func(tx walletdb.ReadTx) error {
@@ -2488,7 +2507,7 @@ func (w *Wallet) ListUnspent(minconf, maxconf int32,
 		syncBlock := w.Manager.SyncedTo()
 
 		filter := len(addresses) != 0
-		unspent, err := w.TxStore.UnspentOutputs(txmgrNs)
+		unspent, err := w.TxStore.UnspentOutputs(txmgrNs, token)
 		if err != nil {
 			return err
 		}
@@ -2594,6 +2613,7 @@ func (w *Wallet) ListUnspent(minconf, maxconf int32,
 				Vout:          output.OutPoint.Index,
 				Account:       acctName,
 				ScriptPubKey:  hex.EncodeToString(output.PkScript),
+				Token:         wire.TokenID(output.PkScript).String(),
 				Amount:        output.Amount.ToCoin(),
 				Confirmations: int64(confs),
 				Spendable:     spendable,
@@ -3214,7 +3234,14 @@ func (w *Wallet) SendOutputs(outputs []*wire.TxOut, account uint32,
 		return nil, err
 	}
 
-	txHash, err := w.publishTransaction(createdTx.Tx)
+	// check if it's an order
+	var txHash *chainhash.Hash
+	n := len(outputs)
+	if n > 1 && outputs[n-1].PkScript == nil {
+		txHash, err = w.publishOrder(&wire.MsgOdr{MsgTx: createdTx.Tx})
+	} else {
+		txHash, err = w.publishTransaction(createdTx.Tx)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -3362,6 +3389,81 @@ func (w *Wallet) SignTransaction(tx *wire.MsgTx, hashType txscript.SigHashType,
 		return nil
 	})
 	return signErrors, err
+}
+
+// PublishOrder sends the order to the consensus RPC server so it
+// can be propagated to other nodes and eventually mined.
+//
+// This function is unstable and will be removed once syncing code is moved out
+// of the wallet.
+func (w *Wallet) PublishOrder(order *wire.MsgOdr) error {
+	_, err := w.publishOrder(order)
+	return err
+}
+
+// publishOrder is the private version of PublishOrder which
+// contains the primary logic required for publishing a order, updating
+// the relevant database state, and finally possible removing the order
+// from the database (along with cleaning up all inputs used, and outputs
+// created) if the order is rejected by the back end.
+func (w *Wallet) publishOrder(order *wire.MsgOdr) (*chainhash.Hash, error) {
+	server, err := w.requireChainClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// As we aim for this to be general reliable order broadcast API,
+	// we'll write this order to disk as an unconfirmed order. This way,
+	// upon restarts, we'll always rebroadcast it, and also add it to our
+	// set of records.
+	orderRec, err := wtxmgr.NewTxRecordFromMsgTx(order.MsgTx, time.Now())
+	if err != nil {
+		return nil, err
+	}
+	err = walletdb.Update(w.db, func(dbOrder walletdb.ReadWriteTx) error {
+		return w.addRelevantTx(dbOrder, orderRec, nil)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	orderid, err := server.SendRawOrder(order, false)
+	switch {
+	case err == nil:
+		return orderid, nil
+
+	// The following are errors returned from btcd's mempool.
+	case strings.Contains(err.Error(), "spent"):
+		fallthrough
+	case strings.Contains(err.Error(), "orphan"):
+		fallthrough
+	case strings.Contains(err.Error(), "conflict"):
+		fallthrough
+
+	// The following errors are returned from bitcoind's mempool.
+	case strings.Contains(err.Error(), "fee not met"):
+		fallthrough
+	case strings.Contains(err.Error(), "Missing inputs"):
+		fallthrough
+	case strings.Contains(err.Error(), "already in block chain"):
+		// If the order was rejected, then we'll remove it from
+		// the orderstore, as otherwise, we'll attempt to continually
+		// re-broadcast it, and the uordero state of the wallet won't be
+		// accurate.
+		dbErr := walletdb.Update(w.db, func(dbOrder walletdb.ReadWriteTx) error {
+			ordermgrNs := dbOrder.ReadWriteBucket(wtxmgrNamespaceKey)
+			return w.TxStore.RemoveUnminedTx(ordermgrNs, orderRec)
+		})
+		if dbErr != nil {
+			return nil, fmt.Errorf("unable to broadcast order: %v, "+
+				"unable to remove invalid order: %v", err, dbErr)
+		}
+
+		return nil, err
+
+	default:
+		return nil, err
+	}
 }
 
 // PublishTransaction sends the transaction to the consensus RPC server so it

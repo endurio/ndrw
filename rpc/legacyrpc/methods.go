@@ -12,18 +12,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/endurio/ndrd/chainec"
-	"github.com/endurio/ndrd/chainjson"
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/chainec"
+	"github.com/endurio/ndrd/chainjson"
+	"github.com/endurio/ndrd/chainutil"
 	"github.com/endurio/ndrd/rpcclient"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
-	"github.com/endurio/ndrd/chainutil"
 	"github.com/endurio/ndrw/chain"
+	"github.com/endurio/ndrw/internal/helpers"
 	"github.com/endurio/ndrw/waddrmgr"
 	"github.com/endurio/ndrw/wallet"
 	"github.com/endurio/ndrw/wallet/txrules"
@@ -102,6 +104,8 @@ var rpcHandlers = map[string]struct {
 	"sendfrom":               {handlerWithChain: sendFrom},
 	"sendmany":               {handler: sendMany},
 	"sendtoaddress":          {handler: sendToAddress},
+	"bid":                    {handler: bid},
+	"ask":                    {handler: ask},
 	"settxfee":               {handler: setTxFee},
 	"signmessage":            {handler: signMessage},
 	"signrawtransaction":     {handlerWithChain: signRawTransaction},
@@ -429,6 +433,30 @@ func getAddressesByAccount(icmd interface{}, w *wallet.Wallet) (interface{}, err
 	return addrStrs, nil
 }
 
+func parseOptionalTokenIdentity(tokenParam *string) *wire.TokenIdentity {
+	// parse the token param
+	if tokenParam != nil {
+		t := strings.ToUpper(*tokenParam)
+		switch t {
+		case wire.STB.String():
+			stb := wire.STB
+			return &stb
+		case wire.NDR.String():
+			ndr := wire.NDR
+			return &ndr
+		}
+	}
+	return nil
+}
+
+func parseTokenIdentity(tokenParam *string) wire.TokenIdentity {
+	// parse the token param
+	if tokenParam != nil && wire.NDR.String() == strings.ToUpper(*tokenParam) {
+		return wire.NDR
+	}
+	return wire.STB
+}
+
 // getBalance handles a getbalance request by returning the balance for an
 // account (wallet), or an error if the requested account does not
 // exist.
@@ -441,10 +469,21 @@ func getBalance(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	if cmd.Account != nil {
 		accountName = *cmd.Account
 	}
+	token := parseTokenIdentity(cmd.Token)
+
 	if accountName == "*" {
-		balance, err = w.CalculateBalance(int32(*cmd.MinConf))
+		// balance, err = w.CalculateBalance(int32(*cmd.MinConf))
+		// [TEMPORARY] using a slow method for simplicity
+		accounts, err := w.AccountNumbers(waddrmgr.KeyScopeBIP0044)
 		if err != nil {
 			return nil, err
+		}
+		for _, account := range accounts {
+			bals, err := w.CalculateAccountBalances(account, int32(*cmd.MinConf), token)
+			if err != nil {
+				return nil, err
+			}
+			balance += bals.Spendable
 		}
 	} else {
 		var account uint32
@@ -452,7 +491,7 @@ func getBalance(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		bals, err := w.CalculateAccountBalances(account, int32(*cmd.MinConf))
+		bals, err := w.CalculateAccountBalances(account, int32(*cmd.MinConf), token)
 		if err != nil {
 			return nil, err
 		}
@@ -592,7 +631,7 @@ func getUnconfirmedBalance(icmd interface{}, w *wallet.Wallet) (interface{}, err
 	if err != nil {
 		return nil, err
 	}
-	bals, err := w.CalculateAccountBalances(account, 1)
+	bals, err := w.CalculateAccountBalances(account, 1, wire.STB)
 	if err != nil {
 		return nil, err
 	}
@@ -1319,7 +1358,7 @@ func listUnspent(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		}
 	}
 
-	return w.ListUnspent(int32(*cmd.MinConf), int32(*cmd.MaxConf), addresses)
+	return w.ListUnspent(int32(*cmd.MinConf), int32(*cmd.MaxConf), addresses, parseOptionalTokenIdentity(cmd.Token))
 }
 
 // lockUnspent handles the lockunspent command.
@@ -1350,8 +1389,13 @@ func lockUnspent(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 // strings to amounts.  This is used to create the outputs to include in newly
 // created transactions from a JSON object describing the output destinations
 // and amounts.
-func makeOutputs(pairs map[string]chainutil.Amount, chainParams *chaincfg.Params) ([]*wire.TxOut, error) {
+func makeOutputs(pairs map[string]chainutil.Amount, token wire.TokenIdentity, chainParams *chaincfg.Params) ([]*wire.TxOut, error) {
 	outputs := make([]*wire.TxOut, 0, len(pairs))
+
+	// temporary remove the order markup
+	orderAmount, isOrder := pairs[""]
+	delete(pairs, "")
+
 	for addrStr, amt := range pairs {
 		addr, err := chainutil.DecodeAddress(addrStr, chainParams)
 		if err != nil {
@@ -1363,8 +1407,14 @@ func makeOutputs(pairs map[string]chainutil.Amount, chainParams *chaincfg.Params
 			return nil, fmt.Errorf("cannot create txout script: %s", err)
 		}
 
-		outputs = append(outputs, wire.NewTxOut(int64(amt), pkScript))
+		outputs = append(outputs, wire.NewTxOutToken(int64(amt), pkScript, token))
 	}
+
+	if isOrder {
+		// append the order markup output
+		outputs = append(outputs, wire.NewTxOut(int64(orderAmount), nil))
+	}
+
 	return outputs, nil
 }
 
@@ -1372,9 +1422,9 @@ func makeOutputs(pairs map[string]chainutil.Amount, chainParams *chaincfg.Params
 // It returns the transaction hash in string format upon success
 // All errors are returned in chainjson.RPCError format
 func sendPairs(w *wallet.Wallet, amounts map[string]chainutil.Amount,
-	account uint32, minconf int32, feeSatPerKb chainutil.Amount) (string, error) {
+	account uint32, token wire.TokenIdentity, minconf int32, feeSatPerKb chainutil.Amount) (string, error) {
 
-	outputs, err := makeOutputs(amounts, w.ChainParams())
+	outputs, err := makeOutputs(amounts, token, w.ChainParams())
 	if err != nil {
 		return "", err
 	}
@@ -1446,8 +1496,7 @@ func sendFrom(icmd interface{}, w *wallet.Wallet, chainClient *chain.RPCClient) 
 	pairs := map[string]chainutil.Amount{
 		cmd.ToAddress: amt,
 	}
-
-	return sendPairs(w, pairs, account, minConf,
+	return sendPairs(w, pairs, account, parseTokenIdentity(cmd.Token), minConf,
 		txrules.DefaultRelayFeePerKb)
 }
 
@@ -1489,7 +1538,7 @@ func sendMany(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		pairs[k] = amt
 	}
 
-	return sendPairs(w, pairs, account, minConf, txrules.DefaultRelayFeePerKb)
+	return sendPairs(w, pairs, account, parseTokenIdentity(cmd.Token), minConf, txrules.DefaultRelayFeePerKb)
 }
 
 // sendToAddress handles a sendtoaddress RPC request by creating a new
@@ -1525,7 +1574,78 @@ func sendToAddress(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	}
 
 	// sendtoaddress always spends from the default account, this matches bitcoind
-	return sendPairs(w, pairs, waddrmgr.DefaultAccountNum, 1,
+	return sendPairs(w, pairs, waddrmgr.DefaultAccountNum, parseTokenIdentity(cmd.Token), 1,
+		txrules.DefaultRelayFeePerKb)
+}
+
+// bid handles a bid RPC request
+func bid(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	cmd := icmd.(*chainjson.BidCmd)
+
+	amount, err := chainutil.NewAmount(cmd.Amount)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check that signed integer parameters are positive.
+	if amount < 0 {
+		return nil, ErrNeedPositiveAmount
+	}
+
+	price := cmd.Price
+	if price <= 0 {
+		return nil, ErrNeedPositivePrice
+	}
+	payout := amount.MulF64(price)
+
+	// buying NDR, passing the STB for reverted token
+	return order(w, wire.STB, amount, payout, *cmd.MinConf)
+}
+
+// ask handles a ask RPC request
+func ask(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	cmd := icmd.(*chainjson.AskCmd)
+
+	amount, err := chainutil.NewAmount(cmd.Amount)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check that signed integer parameters are positive.
+	if amount < 0 {
+		return nil, ErrNeedPositiveAmount
+	}
+
+	price := cmd.Price
+	if price <= 0 {
+		return nil, ErrNeedPositivePrice
+	}
+	payout := amount.MulF64(price)
+
+	// selling NDR, passing NDR for reverted token
+	return order(w, wire.NDR, payout, amount, *cmd.MinConf)
+}
+
+// handles a bid or an ask RPC request
+func order(w *wallet.Wallet, token wire.TokenIdentity, amount, payout chainutil.Amount, minConf int) (interface{}, error) {
+	// Check that minconf is positive.
+	if minConf < 0 {
+		return nil, ErrNeedPositiveMinconf
+	}
+
+	// get a new change address to receive
+	addr, err := w.NewChangeAddress(helpers.ReceivingAccount(waddrmgr.DefaultAccountNum), waddrmgr.KeyScopeBIP0044)
+	if err != nil {
+		return nil, err
+	}
+
+	// Mock up map of address and amount pairs.
+	pairs := map[string]chainutil.Amount{
+		addr.EncodeAddress(): payout,
+		"":                   amount,
+	}
+
+	return sendPairs(w, pairs, waddrmgr.DefaultAccountNum, token, int32(minConf),
 		txrules.DefaultRelayFeePerKb)
 }
 

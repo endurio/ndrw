@@ -7,9 +7,30 @@
 package helpers
 
 import (
-	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrd/chainutil"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrw/waddrmgr"
 )
+
+// ReceivingAccount ...
+func ReceivingAccount(account uint32) uint32 {
+	if account == waddrmgr.ImportedAddrAccount {
+		return 0
+	}
+	return account
+}
+
+// GetSingleToken returns
+func GetSingleToken(outputs []*wire.TxOut) (token wire.TokenIdentity, ok bool) {
+	for i, txOut := range outputs {
+		if i == 0 {
+			token = txOut.TokenID()
+		} else if token != txOut.TokenID() {
+			return wire.STB, false
+		}
+	}
+	return token, true
+}
 
 // SumOutputValues sums up the list of TxOuts and returns an Amount.
 func SumOutputValues(outputs []*wire.TxOut) (totalOutput chainutil.Amount) {

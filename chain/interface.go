@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrd/chainutil"
+	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/waddrmgr"
 	"github.com/endurio/ndrw/wtxmgr"
 )
@@ -34,6 +34,7 @@ type Interface interface {
 	FilterBlocks(*FilterBlocksRequest) (*FilterBlocksResponse, error)
 	BlockStamp() (*waddrmgr.BlockStamp, error)
 	SendRawTransaction(*wire.MsgTx, bool) (*chainhash.Hash, error)
+	SendRawOrder(*wire.MsgOdr, bool) (*chainhash.Hash, error)
 	Rescan(*chainhash.Hash, []chainutil.Address, map[wire.OutPoint]chainutil.Address) error
 	NotifyReceived([]chainutil.Address) error
 	NotifyBlocks() error

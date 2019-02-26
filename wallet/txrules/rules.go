@@ -9,13 +9,13 @@ package txrules
 import (
 	"errors"
 
+	"github.com/endurio/ndrd/chainutil"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
-	"github.com/endurio/ndrd/chainutil"
 )
 
 // DefaultRelayFeePerKb is the default minimum relay fee policy for a mempool.
-const DefaultRelayFeePerKb chainutil.Amount = 1e3
+const DefaultRelayFeePerKb chainutil.Amount = 0
 
 // GetDustThreshold is used to define the amount below which output will be
 // determined as dust. Threshold is determined as 3 times the relay fee.

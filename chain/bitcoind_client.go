@@ -195,6 +195,13 @@ func (c *BitcoindClient) SendRawTransaction(tx *wire.MsgTx,
 	return c.chainConn.client.SendRawTransaction(tx, allowHighFees)
 }
 
+// SendRawOrder sends a raw order via bitcoind.
+func (c *BitcoindClient) SendRawOrder(order *wire.MsgOdr,
+	allowHighFees bool) (*chainhash.Hash, error) {
+
+	return c.chainConn.client.SendRawOrder(order, allowHighFees)
+}
+
 // Notifications returns a channel to retrieve notifications from.
 //
 // NOTE: This is part of the chain.Interface interface.

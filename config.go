@@ -50,6 +50,7 @@ type config struct {
 	ConfigFile    *cfgutil.ExplicitString `short:"C" long:"configfile" description:"Path to configuration file"`
 	ShowVersion   bool                    `short:"V" long:"version" description:"Display version information and exit"`
 	Create        bool                    `long:"create" description:"Create the wallet if it does not exist"`
+	PassPhrase    string                  `long:"passphrase" description:"Passphrase for non-interactive --create (insecure)"`
 	CreateTemp    bool                    `long:"createtemp" description:"Create a temporary simulation wallet (pass=password) in the data directory indicated; must call with --datadir"`
 	AppDataDir    *cfgutil.ExplicitString `short:"A" long:"appdata" description:"Application data directory for wallet config, databases and logs"`
 	TestNet3      bool                    `long:"testnet" description:"Use the test Bitcoin network (version 3) (default mainnet)"`
@@ -525,13 +526,12 @@ func loadConfig() (*config, []string, error) {
 		}
 		if cfg.DisableClientTLS {
 			if _, ok := localhostListeners[RPCHost]; !ok {
-				str := "%s: the --noclienttls option may not be used " +
+				str := "%s: the --noclienttls option should not be used " +
 					"when connecting RPC to non localhost " +
 					"addresses: %s"
 				err := fmt.Errorf(str, funcName, cfg.RPCConnect)
 				fmt.Fprintln(os.Stderr, err)
 				fmt.Fprintln(os.Stderr, usageMessage)
-				return nil, nil, err
 			}
 		} else {
 			// If CAFile is unset, choose either the copy or local ndrd cert.
@@ -630,13 +630,12 @@ func loadConfig() (*config, []string, error) {
 				return nil, nil, err
 			}
 			if _, ok := localhostListeners[host]; !ok {
-				str := "%s: the --noservertls option may not be used " +
+				str := "%s: the --noservertls option should not be used " +
 					"when binding RPC to non localhost " +
 					"addresses: %s"
 				err := fmt.Errorf(str, funcName, addr)
 				fmt.Fprintln(os.Stderr, err)
 				fmt.Fprintln(os.Stderr, usageMessage)
-				return nil, nil, err
 			}
 		}
 	}

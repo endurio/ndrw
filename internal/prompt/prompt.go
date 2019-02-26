@@ -261,11 +261,15 @@ func PublicPass(reader *bufio.Reader, privPass []byte,
 // yes, a the user is prompted for it.  All prompts are repeated until the user
 // enters a valid response.
 func Seed(reader *bufio.Reader) ([]byte, error) {
-	// Ascertain the wallet generation seed.
-	useUserSeed, err := promptListBool(reader, "Do you have an "+
-		"existing wallet seed you want to use?", "no")
-	if err != nil {
-		return nil, err
+	useUserSeed := false
+	if reader != nil {
+		// Ascertain the wallet generation seed.
+		var err error
+		useUserSeed, err = promptListBool(reader, "Do you have an "+
+			"existing wallet seed you want to use?", "no")
+		if err != nil {
+			return nil, err
+		}
 	}
 	if !useUserSeed {
 		seed, err := hdkeychain.GenerateSeed(hdkeychain.RecommendedSeedLen)
@@ -282,17 +286,19 @@ func Seed(reader *bufio.Reader) ([]byte, error) {
 			"giving them access to all your funds, so it is\n" +
 			"imperative that you keep it in a secure location.")
 
-		for {
-			fmt.Print(`Once you have stored the seed in a safe ` +
-				`and secure location, enter "OK" to continue: `)
-			confirmSeed, err := reader.ReadString('\n')
-			if err != nil {
-				return nil, err
-			}
-			confirmSeed = strings.TrimSpace(confirmSeed)
-			confirmSeed = strings.Trim(confirmSeed, `"`)
-			if confirmSeed == "OK" {
-				break
+		if reader != nil {
+			for {
+				fmt.Print(`Once you have stored the seed in a safe ` +
+					`and secure location, enter "OK" to continue: `)
+				confirmSeed, err := reader.ReadString('\n')
+				if err != nil {
+					return nil, err
+				}
+				confirmSeed = strings.TrimSpace(confirmSeed)
+				confirmSeed = strings.Trim(confirmSeed, `"`)
+				if confirmSeed == "OK" {
+					break
+				}
 			}
 		}
 
